@@ -255,32 +255,14 @@
     </div>
 
     <div class="field-block">
-      <label>Link de Google Sheets (CSV publicado)</label>
-      <input type="url" id="csvUrlInput" placeholder="https://docs.google.com/spreadsheets/d/…/pub?output=csv">
+      <label>Link del Apps Script (URL /exec)</label>
+      <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/…/exec">
       <p class="help-text">
-        En Google Sheets: Archivo → Compartir → Publicar en la Web → elegí la hoja → formato <b>CSV</b> → Publicar, y pegá acá el link generado. Cada vez que abras la app con internet, se va a sincronizar sola para los 10 celulares.
+        Un solo link resuelve todo: leer el Directorio, leer la hoja VAE, y guardar los cambios de VAE. Es la URL que te da Google al implementar el Apps Script (ver instrucciones aparte). Pegala acá y tocá "Sincronizar ahora".
       </p>
     </div>
     <div class="btn-row">
       <button class="btn btn-primary" id="syncNowBtn">Sincronizar ahora</button>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="field-block">
-      <label>Link para guardar VAE en Google Sheets</label>
-      <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/…/exec">
-      <p class="help-text">
-        Link del Apps Script publicado (ver instrucciones que te pasaron aparte). Sin esto, el campo VAE se puede editar pero el cambio no se comparte con los otros celulares.
-      </p>
-    </div>
-
-    <div class="field-block">
-      <label>Link de la hoja VAE (CSV publicado)</label>
-      <input type="url" id="vaeUrlInput" placeholder="https://docs.google.com/spreadsheets/d/…/pub?output=csv">
-      <p class="help-text">
-        Link publicado de la pestaña "VAE" (columnas Apellido, Nombre, VAE Actual, VAE Anterior Visita, VAE Anterior Visita 1). Archivo → Compartir → Publicar en la Web → elegí la pestaña VAE → CSV → Publicar, y pegá el link acá.
-      </p>
     </div>
 
     <div class="divider"></div>
@@ -329,12 +311,10 @@
 
   var LS_DATA = 'directorio_data';
   var LS_SYNC = 'directorio_last_sync';
-  var LS_CSV_URL = 'directorio_csv_url';
   var LS_PIN = 'directorio_pin'; // legacy, ya no se usa
   var LS_USERS = 'directorio_users';
   var LS_LOGIN_ONBOARDED = 'directorio_login_onboarded';
   var LS_SCRIPT_URL = 'directorio_script_url';
-  var LS_VAE_URL = 'directorio_vae_url';
 
   var state = {
     data: [],
@@ -711,11 +691,12 @@
   }
 
   function syncFromUrl(showToast){
-    var url = localStorage.getItem(LS_CSV_URL);
-    if (!url){
-      if (showToast) toast('No configuraste un link de Google Sheets todavía');
+    var scriptUrl = localStorage.getItem(LS_SCRIPT_URL);
+    if (!scriptUrl){
+      if (showToast) toast('No configuraste el link del Apps Script todavía');
       return;
     }
+    var url = scriptUrl + (scriptUrl.indexOf('?') === -1 ? '?' : '&') + 'sheet=Directorio';
     if (showToast) toast('Sincronizando…');
     fetch(url, {cache:'no-store'}).then(function(r){
       if (!r.ok) throw new Error('bad response');
@@ -735,11 +716,12 @@
   }
 
   function syncVaeFromUrl(showToast){
-    var url = localStorage.getItem(LS_VAE_URL);
-    if (!url){
-      if (showToast) toast('No configuraste el link de la hoja VAE todavía');
+    var scriptUrl = localStorage.getItem(LS_SCRIPT_URL);
+    if (!scriptUrl){
+      if (showToast) toast('No configuraste el link del Apps Script todavía');
       return;
     }
+    var url = scriptUrl + (scriptUrl.indexOf('?') === -1 ? '?' : '&') + 'sheet=VAE';
     fetch(url, {cache:'no-store'}).then(function(r){
       if (!r.ok) throw new Error('bad response');
       return r.text();
@@ -940,9 +922,7 @@
   // ---------- Settings panel ----------
   var overlay = document.getElementById('settingsOverlay');
   function openSettings(){
-    document.getElementById('csvUrlInput').value = localStorage.getItem(LS_CSV_URL) || '';
     document.getElementById('scriptUrlInput').value = localStorage.getItem(LS_SCRIPT_URL) || '';
-    document.getElementById('vaeUrlInput').value = localStorage.getItem(LS_VAE_URL) || '';
     document.getElementById('lastSyncText').textContent = formatSyncTime(localStorage.getItem(LS_SYNC));
     document.getElementById('addUserForm').style.display = 'none';
     refreshUsersUI();
@@ -954,21 +934,12 @@
   document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
   overlay.addEventListener('click', function(e){ if (e.target === overlay) closeSettings(); });
 
-  document.getElementById('csvUrlInput').addEventListener('change', function(){
-    localStorage.setItem(LS_CSV_URL, this.value.trim());
-  });
-
   document.getElementById('scriptUrlInput').addEventListener('change', function(){
     localStorage.setItem(LS_SCRIPT_URL, this.value.trim());
   });
 
-  document.getElementById('vaeUrlInput').addEventListener('change', function(){
-    localStorage.setItem(LS_VAE_URL, this.value.trim());
-  });
-
   document.getElementById('syncNowBtn').addEventListener('click', function(){
-    localStorage.setItem(LS_CSV_URL, document.getElementById('csvUrlInput').value.trim());
-    localStorage.setItem(LS_VAE_URL, document.getElementById('vaeUrlInput').value.trim());
+    localStorage.setItem(LS_SCRIPT_URL, document.getElementById('scriptUrlInput').value.trim());
     syncFromUrl(true);
     syncVaeFromUrl(false);
   });

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'directorio-cache-v1';
+const CACHE_NAME = 'directorio-cache-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -26,11 +26,14 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  const isExternal = !req.url.startsWith(self.location.origin);
 
-  // Network-first for the external Google Sheets CSV sync, so data updates when online.
-  if (req.url.includes('output=csv') || req.url.includes('/gviz/')) {
+  // Network-first for external requests (Google Sheets / Apps Script), so data updates when online.
+  if (isExternal) {
     event.respondWith(
-      fetch(req).catch(() => caches.match(req))
+      fetch(req).catch(() =>
+        caches.match(req).then((cached) => cached || Response.error())
+      )
     );
     return;
   }
