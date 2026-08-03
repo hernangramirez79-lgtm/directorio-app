@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#253c5c">
+<title>Directorio Portal</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Directorio">
+<style>
+  :root{
+    --navy:#1c2f49;
+    --navy-2:#253c5c;
+    --gold:#f0b43c;
+    --paper:#f4f6f9;
+    --card:#ffffff;
+    --ink:#1c2430;
+    --ink-soft:#5b6472;
+    --line:#e3e7ee;
+    --danger:#c0392b;
+    --ok:#2e7d4f;
+    --radius:14px;
+    --shadow:0 2px 10px rgba(28,47,73,0.08);
+    font-size:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    overscroll-behavior-y:contain;
+  }
+  #app{display:flex;flex-direction:column;min-height:100vh;}
+
+  /* ---------- Header ---------- */
+  header{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);
+    padding:calc(env(safe-area-inset-top,0px) + 18px) 18px 18px;
+    color:#fff;
+    position:sticky;top:0;z-index:20;
+    box-shadow:0 4px 14px rgba(28,47,73,0.18);
+  }
+  .header-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{
+    width:34px;height:34px;border-radius:9px;
+    background:var(--gold);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:var(--navy);font-size:16px;
+    flex:none;
+  }
+  .brand h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.2px;}
+  .brand small{display:block;font-size:11.5px;color:#c9d4e4;font-weight:500;margin-top:1px;}
+  .icon-btn{
+    width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,0.18);
+    background:rgba(255,255,255,0.08);color:#fff;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex:none;
+  }
+  .icon-btn:active{background:rgba(255,255,255,0.2);}
+  .search-wrap{margin-top:14px;position:relative;}
+  #searchInput{
+    width:100%;padding:13px 14px 13px 42px;border-radius:12px;border:none;
+    font-size:16px;background:#fff;color:var(--ink);outline:none;
+  }
+  .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);opacity:.55;}
+  .status-line{
+    margin-top:10px;display:flex;align-items:center;gap:6px;
+    font-size:11.5px;color:#c9d4e4;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex:none;}
+
+  /* ---------- Content ---------- */
+  main{flex:1;padding:14px 14px 40px;max-width:640px;margin:0 auto;width:100%;}
+  .count-line{font-size:12.5px;color:var(--ink-soft);margin:2px 4px 10px;letter-spacing:.2px;}
+  .empty{
+    text-align:center;color:var(--ink-soft);padding:60px 20px;font-size:14.5px;line-height:1.6;
+  }
+  .empty b{color:var(--ink);display:block;font-size:16px;margin-bottom:6px;}
+
+  .card{
+    background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:14px 16px;margin-bottom:10px;border:1px solid var(--line);
+  }
+  .card-name{font-size:16px;font-weight:700;color:var(--navy-2);margin:0 0 2px;}
+  .card-sub{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;}
+  .field-grid{display:grid;grid-template-columns:1fr;gap:7px;}
+  .field{display:flex;gap:10px;align-items:flex-start;font-size:14px;}
+  .field .label{
+    flex:none;width:108px;color:var(--ink-soft);font-size:12px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.3px;padding-top:2px;
+  }
+  .field .value{flex:1;color:var(--ink);word-break:break-word;}
+  .field .value a{color:var(--navy-2);text-decoration:none;font-weight:600;}
+  .field.empty-field .value{color:#b7bec9;font-style:italic;}
+
+  .vae-block{
+    margin:-2px 0 10px;padding:10px 12px;background:#fbf6ea;border:1px solid #ecd9a3;
+    border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    transition:background .15s, border-color .15s;
+  }
+  .vae-block.overdue{background:#fde3e0;border:1px solid #e2867c;}
+  .vae-block.overdue .vae-label{color:#a8321f;}
+  .vae-block .vae-label{font-size:12px;font-weight:700;color:#8a6a17;text-transform:uppercase;letter-spacing:.3px;}
+  .vae-input-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+  .vae-input{
+    width:96px;padding:7px 9px;border-radius:8px;border:1px solid #ecd9a3;background:#fff;
+    font-size:14.5px;text-align:center;letter-spacing:.5px;font-variant-numeric:tabular-nums;
+  }
+  .vae-input.invalid{border-color:var(--danger);color:var(--danger);}
+  .vae-status{font-size:11px;color:#8a6a17;max-width:160px;text-align:right;line-height:1.35;white-space:normal;}
+  .vae-status.err{color:var(--danger);}
+  .vae-status.ok{color:var(--ok);}
+
+  .vae-history-toggle{
+    background:none;border:none;color:var(--navy-2);font-size:12px;font-weight:600;
+    padding:2px 0;cursor:pointer;text-decoration:underline;text-underline-offset:2px;
+  }
+  .vae-history{
+    background:#fbfbfc;border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+    margin:2px 0 10px;
+  }
+  .vae-history-empty{margin:0;font-size:12.5px;color:var(--ink-soft);}
+  .vae-history-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
+  .vae-history-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;}
+  .vh-date{color:var(--ink);font-weight:600;}
+  .vh-time{color:var(--ink-soft);font-size:11.5px;flex:none;}
+
+  /* ---------- Overlay / Settings & PIN ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(20,28,40,0.55);z-index:50;
+    display:flex;align-items:flex-end;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .18s ease;
+  }
+  .overlay.show{opacity:1;pointer-events:auto;}
+  .sheet{
+    background:var(--paper);width:100%;max-width:640px;border-radius:20px 20px 0 0;
+    padding:18px 20px calc(env(safe-area-inset-bottom,0px) + 22px);
+    max-height:88vh;overflow-y:auto;
+    transform:translateY(14px);transition:transform .18s ease;
+  }
+  .overlay.show .sheet{transform:translateY(0);}
+  .sheet h2{font-size:17px;margin:2px 0 14px;color:var(--navy-2);}
+  .sheet-handle{width:38px;height:4px;background:#d7dce3;border-radius:3px;margin:0 auto 14px;}
+  .field-block{margin-bottom:16px;}
+  .field-block label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px;}
+  .field-block input[type=text],.field-block input[type=url],.field-block input[type=password]{
+    width:100%;padding:12px 13px;border-radius:10px;border:1px solid var(--line);font-size:15px;background:#fff;
+  }
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:12px 16px;border-radius:11px;border:none;font-size:14.5px;font-weight:700;
+    cursor:pointer;width:100%;
+  }
+  .btn-primary{background:var(--navy-2);color:#fff;}
+  .btn-primary:active{background:var(--navy);}
+  .btn-outline{background:#fff;color:var(--navy-2);border:1px solid var(--line);}
+  .btn-danger{background:#fdecea;color:var(--danger);}
+  .btn-row{display:flex;gap:10px;margin-top:6px;}
+  .btn-row .btn{width:auto;flex:1;}
+  .help-text{font-size:12.5px;color:var(--ink-soft);line-height:1.55;margin:6px 0 0;}
+  .divider{height:1px;background:var(--line);margin:18px 0;}
+  .sync-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--ink-soft);margin-bottom:14px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
+  .sync-row b{color:var(--ink);}
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+    background:var(--navy);color:#fff;padding:10px 18px;border-radius:30px;font-size:13.5px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.2);z-index:80;opacity:0;pointer-events:none;transition:opacity .2s, bottom .2s;
+  }
+  .toast.show{opacity:1;bottom:34px;}
+
+  /* ---------- Login lock screen ---------- */
+  #lockScreen{
+    position:fixed;inset:0;background:linear-gradient(160deg,var(--navy) 0%,var(--navy-2) 100%);
+    z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:#fff;padding:24px;text-align:center;
+  }
+  #lockScreen.hidden{display:none;}
+  .lock-mark{width:58px;height:58px;border-radius:16px;background:var(--gold);color:var(--navy);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;margin-bottom:18px;}
+  #lockScreen h2{margin:0 0 6px;font-size:19px;}
+  #lockScreen > p{margin:0 0 22px;color:#c9d4e4;font-size:13.5px;}
+  .login-form{width:100%;max-width:280px;display:flex;flex-direction:column;gap:10px;}
+  .login-form input{
+    width:100%;padding:13px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.22);
+    background:rgba(255,255,255,0.08);color:#fff;font-size:15px;outline:none;
+  }
+  .login-form input::placeholder{color:#a9b6ca;}
+  .login-form .btn{margin-top:4px;}
+  .lock-toggle{margin-top:16px !important;font-size:13px;color:#c9d4e4;}
+  .lock-toggle a{color:var(--gold);font-weight:600;text-decoration:none;}
+  .lock-skip{display:inline-block;margin-top:14px;font-size:12.5px;color:#8ea0ba;text-decoration:none;}
+  #lockError{color:#ffb3ab;font-size:12.5px;min-height:16px;margin-top:2px;text-align:left;}
+
+  ::-webkit-scrollbar{width:0;height:0;}
+</style>
+</head>
+<body>
+
+<div id="lockScreen" class="hidden">
+  <div class="lock-mark">D</div>
+  <h2 id="lockTitle">Directorio Portal</h2>
+  <p id="lockSubtitle">Iniciá sesión para acceder</p>
+  <form class="login-form" id="loginForm" autocomplete="off">
+    <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username">
+    <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password">
+    <input type="password" id="loginPassConfirm" placeholder="Confirmar contraseña" style="display:none;" autocomplete="new-password">
+    <div id="lockError"></div>
+    <button type="submit" class="btn btn-primary" id="loginSubmitBtn">Ingresar</button>
+  </form>
+  <p class="lock-toggle" id="lockToggleWrap" style="display:none;"></p>
+  <a href="#" class="lock-skip" id="lockSkipLink">Omitir por ahora</a>
+</div>
+
+<div id="app">
+  <header>
+    <div class="header-row">
+      <div class="brand">
+        <div class="brand-mark">D</div>
+        <div>
+          <h1>Directorio Portal</h1>
+          <small id="peopleCountLabel">Cargando datos…</small>
+        </div>
+      </div>
+      <button class="icon-btn" id="settingsBtn" aria-label="Configuración">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1z"></path></svg>
+      </button>
+    </div>
+    <div class="search-wrap">
+      <svg class="search-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1c2430" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+      <input id="searchInput" type="text" placeholder="Buscar por nombre o apellido…" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="status-line"><span class="dot"></span><span id="syncLabel">Sin sincronizar todavía</span></div>
+  </header>
+
+  <main>
+    <div class="count-line" id="countLine"></div>
+    <div id="results"></div>
+  </main>
+</div>
+
+<div class="overlay" id="settingsOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2>Configuración</h2>
+
+    <div class="sync-row">
+      <span>Última actualización: <b id="lastSyncText">nunca</b></span>
+    </div>
+
+    <div class="field-block">
+      <label>Link de Google Sheets (CSV publicado)</label>
+      <input type="url" id="csvUrlInput" placeholder="https://docs.google.com/spreadsheets/d/…/pub?output=csv">
+      <p class="help-text">
+        En Google Sheets: Archivo → Compartir → Publicar en la Web → elegí la hoja → formato <b>CSV</b> → Publicar, y pegá acá el link generado. Cada vez que abras la app con internet, se va a sincronizar sola para los 10 celulares.
+      </p>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="syncNowBtn">Sincronizar ahora</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field-block">
+      <label>Link para guardar VAE en Google Sheets</label>
+      <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/…/exec">
+      <p class="help-text">
+        Link del Apps Script publicado (ver instrucciones que te pasaron aparte). Sin esto, el campo VAE se puede editar pero el cambio no se comparte con los otros celulares.
+      </p>
+    </div>
+
+    <div class="field-block">
+      <label>Link de la hoja VAE (CSV publicado)</label>
+      <input type="url" id="vaeUrlInput" placeholder="https://docs.google.com/spreadsheets/d/…/pub?output=csv">
+      <p class="help-text">
+        Link publicado de la pestaña "VAE" (columnas Apellido, Nombre, VAE Actual, VAE Anterior Visita, VAE Anterior Visita 1). Archivo → Compartir → Publicar en la Web → elegí la pestaña VAE → CSV → Publicar, y pegá el link acá.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field-block">
+      <label>Importar archivo manualmente</label>
+      <input type="file" id="fileImportInput" accept=".csv,.xlsx,.xls">
+      <p class="help-text">Alternativa sin depender de un link: podés importar un Excel o CSV directo desde el celular.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field-block">
+      <label>Usuarios de este celular</label>
+      <p class="help-text" id="usersStatusText">No hay usuarios registrados todavía.</p>
+      <div class="btn-row">
+        <button class="btn btn-outline" id="addUserBtn">Agregar usuario</button>
+        <button class="btn btn-outline" id="logoutBtn" style="display:none;">Cerrar sesión</button>
+      </div>
+
+      <div id="addUserForm" style="display:none;margin-top:12px;">
+        <input type="text" id="newUserName" placeholder="Usuario" autocomplete="off" style="margin-bottom:8px;">
+        <input type="password" id="newUserPass" placeholder="Contraseña" autocomplete="new-password" style="margin-bottom:8px;">
+        <input type="password" id="newUserPassConfirm" placeholder="Confirmar contraseña" autocomplete="new-password" style="margin-bottom:8px;">
+        <div id="addUserError" style="color:var(--danger);font-size:12.5px;min-height:16px;"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="confirmAddUserBtn">Crear</button>
+          <button class="btn btn-outline" id="cancelAddUserBtn">Cancelar</button>
+        </div>
+      </div>
+
+      <button class="btn btn-danger" id="resetUsersBtn" style="margin-top:10px;">Quitar control de acceso</button>
+      <p class="help-text">Esto borra los usuarios guardados en este celular y deja la app abierta sin pedir sesión.</p>
+    </div>
+
+    <div class="divider"></div>
+    <button class="btn btn-outline" id="closeSettingsBtn">Cerrar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var LS_DATA = 'directorio_data';
+  var LS_SYNC = 'directorio_last_sync';
+  var LS_CSV_URL = 'directorio_csv_url';
+  var LS_PIN = 'directorio_pin'; // legacy, ya no se usa
+  var LS_USERS = 'directorio_users';
+  var LS_LOGIN_ONBOARDED = 'directorio_login_onboarded';
+  var LS_SCRIPT_URL = 'directorio_script_url';
+  var LS_VAE_URL = 'directorio_vae_url';
+
+  var state = {
+    data: [],
+    filtered: [],
+    query: '',
+    history: []
+  };
+
+  // ---------- Utilities ----------
+  function normalize(str){
+    return (str || '').toString()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .toLowerCase().trim();
+  }
+
+  function escapeHtml(str){
+    return (str || '').toString()
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function toast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast._tm);
+    toast._tm = setTimeout(function(){ t.classList.remove('show'); }, 2400);
+  }
+
+  function formatSyncTime(iso){
+    if(!iso) return 'nunca';
+    var d = new Date(iso);
+    return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+  }
+
+  // ---------- CSV parsing (handles quoted fields) ----------
+  // Tokeniza un CSV crudo en filas de objetos { headerNormalizado: valor }, sin mapear a ningún modelo todavía.
+  function csvToObjects(text){
+    var rows = [];
+    var row = [];
+    var field = '';
+    var inQuotes = false;
+    for (var i = 0; i < text.length; i++){
+      var c = text[i];
+      if (inQuotes){
+        if (c === '"'){
+          if (text[i+1] === '"'){ field += '"'; i++; }
+          else { inQuotes = false; }
+        } else { field += c; }
+      } else {
+        if (c === '"'){ inQuotes = true; }
+        else if (c === ','){ row.push(field); field = ''; }
+        else if (c === '\n'){ row.push(field); rows.push(row); row = []; field = ''; }
+        else if (c === '\r'){ /* skip */ }
+        else { field += c; }
+      }
+    }
+    if (field.length || row.length){ row.push(field); rows.push(row); }
+    if (!rows.length) return [];
+    var headers = rows[0].map(function(h){ return normalize(h); });
+    var out = [];
+    for (var r = 1; r < rows.length; r++){
+      if (rows[r].length === 1 && rows[r][0] === '') continue;
+      var obj = {};
+      headers.forEach(function(h, idx){ obj[h] = rows[r][idx] !== undefined ? rows[r][idx] : ''; });
+      out.push(obj);
+    }
+    return out;
+  }
+
+  function parseCSV(text){
+    return csvToObjects(text).map(mapRow);
+  }
+
+  // Map flexible header names -> internal keys
+  var HEADER_MAP = {
+    'nombre y apellido': 'nombreApellido',
+    'apellido': 'apellido',
+    'nombre': 'nombre',
+    'fecha de nacimiento': 'fechaNacimiento',
+    'edad': 'edad',
+    'localidad': 'localidad',
+    'email': 'email',
+    'correo': 'email',
+    'telefono fijo': 'telefonoFijo',
+    'telefono': 'telefonoFijo',
+    'celular': 'celular',
+    'direccion': 'direccion',
+    'vae': 'vae'
+  };
+
+  function mapRow(obj){
+    var rec = { nombreApellido:'', apellido:'', nombre:'', fechaNacimiento:'', edad:'', localidad:'', email:'', telefonoFijo:'', celular:'', direccion:'', vae:'' };
+    Object.keys(obj).forEach(function(key){
+      var target = HEADER_MAP[key];
+      if (target) rec[target] = (obj[key] || '').toString().trim();
+    });
+    if (!rec.nombreApellido && (rec.apellido || rec.nombre)){
+      rec.nombreApellido = [rec.apellido, rec.nombre].filter(Boolean).join(', ');
+    }
+    return rec;
+  }
+
+  // ---------- Hoja VAE (Apellido, Nombre, VAE Actual, VAE Anterior Visita, VAE Anterior Visita 1) ----------
+  var VAE_HEADER_MAP = {
+    'apellido': 'apellido',
+    'nombre': 'nombre',
+    'vae actual': 'vaeActual',
+    'vae anterior visita': 'vaeAnterior',
+    'vae anterior visita 1': 'vaeAnterior1'
+  };
+
+  function mapVaeRow(obj){
+    var rec = { apellido:'', nombre:'', vaeActual:'', vaeAnterior:'', vaeAnterior1:'' };
+    Object.keys(obj).forEach(function(key){
+      var target = VAE_HEADER_MAP[key];
+      if (target) rec[target] = (obj[key] || '').toString().trim();
+    });
+    return rec;
+  }
+
+  function parseVaeCSV(text){
+    return csvToObjects(text).map(mapVaeRow);
+  }
+
+  // Clave para cruzar una persona del directorio con su fila en la hoja VAE
+  function vaeKey(apellido, nombre){
+    return normalize(apellido) + '|' + normalize(nombre);
+  }
+
+  // ---------- Rendering ----------
+  function renderResults(){
+    var container = document.getElementById('results');
+    var countLine = document.getElementById('countLine');
+
+    if (!state.data.length){
+      container.innerHTML = '<div class="empty"><b>Todavía no hay datos cargados</b>Abrí Configuración para sincronizar con Google Sheets o importar un archivo.</div>';
+      countLine.textContent = '';
+      return;
+    }
+
+    if (!state.query){
+      countLine.textContent = state.data.length + ' personas en el directorio · escribí para buscar';
+      container.innerHTML = '';
+      return;
+    }
+
+    var q = normalize(state.query);
+    var matches = state.data.filter(function(p){
+      return normalize(p.nombreApellido).indexOf(q) !== -1 ||
+             normalize(p.apellido).indexOf(q) !== -1 ||
+             normalize(p.nombre).indexOf(q) !== -1;
+    }).slice(0, 60);
+
+    countLine.textContent = matches.length + (matches.length === 1 ? ' resultado' : ' resultados');
+
+    if (!matches.length){
+      container.innerHTML = '<div class="empty"><b>Sin resultados</b>No encontramos a nadie con ese nombre o apellido.</div>';
+      return;
+    }
+
+    container.innerHTML = matches.map(cardHtml).join('');
+  }
+
+  function fieldHtml(label, value, opts){
+    opts = opts || {};
+    var empty = !value;
+    var display = empty ? 'Sin dato' : escapeHtml(value);
+    if (!empty && opts.tel){
+      display = '<a href="tel:' + escapeHtml(value) + '">' + display + '</a>';
+    }
+    if (!empty && opts.mail){
+      display = '<a href="mailto:' + escapeHtml(value) + '">' + display + '</a>';
+    }
+    return '<div class="field' + (empty ? ' empty-field' : '') + '"><div class="label">' + label + '</div><div class="value">' + display + '</div></div>';
+  }
+
+  function cardHtml(p){
+    var sub = [p.localidad, p.edad ? (p.edad + ' años') : ''].filter(Boolean).join(' · ');
+    return '<div class="card">' +
+      '<p class="card-name">' + escapeHtml(p.nombreApellido) + '</p>' +
+      (sub ? '<p class="card-sub">' + escapeHtml(sub) + '</p>' : '') +
+      '<div class="vae-block' + (isVaeOverdue(p.vae) ? ' overdue' : '') + '">' +
+        '<span class="vae-label">VAE</span>' +
+        '<div class="vae-input-wrap">' +
+          '<input class="vae-input" type="text" inputmode="numeric" placeholder="DD/MM/AA" maxlength="8" ' +
+            'data-id="' + p.id + '" value="' + escapeHtml(p.vae || '') + '">' +
+          '<span class="vae-status" data-status-for="' + p.id + '">' + (p.vae ? '' : 'Aún no se realizó VAE') + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<button type="button" class="vae-history-toggle" data-id="' + p.id + '">Ver historial de VAE</button>' +
+      '<div class="vae-history" data-history-for="' + p.id + '" style="display:none;"></div>' +
+      '<div class="field-grid">' +
+        fieldHtml('Nacimiento', p.fechaNacimiento) +
+        fieldHtml('Tel. fijo', p.telefonoFijo, {tel:true}) +
+        fieldHtml('Celular', p.celular, {tel:true}) +
+        fieldHtml('Email', p.email, {mail:true}) +
+        fieldHtml('Dirección', p.direccion) +
+      '</div>' +
+    '</div>';
+  }
+
+  // ---------- VAE date field (DD/MM/AA) ----------
+  function renderHistoryList(record){
+    var entries = [];
+    if (record.vaeAnterior) entries.push({ label: 'Visita anterior', value: record.vaeAnterior });
+    if (record.vaeAnterior1) entries.push({ label: 'Visita anterior a esa', value: record.vaeAnterior1 });
+    if (!entries.length) return '<p class="vae-history-empty">Sin VAE anteriores registrados.</p>';
+    return '<ul class="vae-history-list">' + entries.map(function(en){
+      return '<li><span class="vh-date">' + escapeHtml(en.value) + '</span>' +
+        '<span class="vh-time">' + escapeHtml(en.label) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+
+  document.getElementById('results').addEventListener('click', function(e){
+    var btn = e.target.closest('.vae-history-toggle');
+    if (!btn) return;
+    var id = btn.getAttribute('data-id');
+    var panel = document.querySelector('.vae-history[data-history-for="' + id + '"]');
+    if (!panel) return;
+    var isOpen = panel.getAttribute('data-open') === '1';
+    if (isOpen){
+      panel.style.display = 'none';
+      panel.removeAttribute('data-open');
+      btn.textContent = 'Ver historial de VAE';
+      return;
+    }
+    var record = state.data.filter(function(p){ return String(p.id) === String(id); })[0];
+    panel.innerHTML = renderHistoryList(record || {});
+    panel.style.display = 'block';
+    panel.setAttribute('data-open', '1');
+    btn.textContent = 'Ocultar historial de VAE';
+  });
+
+  function formatVaeDigits(digits){
+    if (digits.length > 4) return digits.slice(0,2) + '/' + digits.slice(2,4) + '/' + digits.slice(4,6);
+    if (digits.length > 2) return digits.slice(0,2) + '/' + digits.slice(2,4);
+    return digits;
+  }
+
+  function isValidVaeDate(value){
+    var m = /^(\d{2})\/(\d{2})\/(\d{2})$/.exec(value);
+    if (!m) return { ok:false, reason:'formato' };
+    var day = parseInt(m[1], 10), month = parseInt(m[2], 10), yy = parseInt(m[3], 10);
+    if (month < 1 || month > 12) return { ok:false, reason:'formato' };
+    if (day < 1 || day > 31) return { ok:false, reason:'formato' };
+
+    var fullYear = 2000 + yy; // AA de dos dígitos, siempre 20xx
+    var entered = new Date(fullYear, month - 1, day);
+    // detecta días inválidos como 31/04 que JS "corrige" corriéndose de mes
+    if (entered.getMonth() !== month - 1 || entered.getDate() !== day) return { ok:false, reason:'formato' };
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (entered.getTime() > today.getTime()) return { ok:false, reason:'futuro' };
+
+    return { ok:true, date:entered };
+  }
+
+  function isVaeOverdue(value){
+    var check = isValidVaeDate(value);
+    if (!check.ok || !check.date) return false;
+    var cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setMonth(cutoff.getMonth() - 6);
+    return check.date.getTime() < cutoff.getTime();
+  }
+
+  function setVaeStatus(id, text, cls){
+    var el = document.querySelector('.vae-status[data-status-for="' + id + '"]');
+    if (el){ el.textContent = text; el.className = 'vae-status' + (cls ? ' ' + cls : ''); }
+  }
+
+  function saveVae(id, value){
+    var record = state.data.filter(function(p){ return String(p.id) === String(id); })[0];
+    if (!record) return;
+    var oldVae = record.vae || '';
+    if (oldVae !== value){
+      record.vaeAnterior1 = record.vaeAnterior || '';
+      record.vaeAnterior = oldVae;
+    }
+    record.vae = value;
+    localStorage.setItem(LS_DATA, JSON.stringify(state.data));
+    refreshOpenHistoryPanels();
+
+    var scriptUrl = localStorage.getItem(LS_SCRIPT_URL);
+    if (!scriptUrl){
+      setVaeStatus(id, 'guardado local', 'ok');
+      toast('Guardado en este celular. Configurá el link de Google Sheets para compartirlo con los demás.');
+      return;
+    }
+    setVaeStatus(id, 'guardando…', '');
+    fetch(scriptUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify({ apellido: record.apellido, nombre: record.nombre, vae: value })
+    }).then(function(r){ return r.json(); }).then(function(res){
+      if (res && res.ok){
+        setVaeStatus(id, 'sincronizado', 'ok');
+      } else {
+        setVaeStatus(id, 'no se pudo compartir', 'err');
+      }
+    }).catch(function(){
+      setVaeStatus(id, 'sin conexión', 'err');
+    });
+  }
+
+  document.getElementById('results').addEventListener('input', function(e){
+    var el = e.target;
+    if (!el.classList.contains('vae-input')) return;
+    var digits = el.value.replace(/[^0-9]/g, '').slice(0, 6);
+    var caretWasAtEnd = el.selectionStart === el.value.length;
+    el.value = formatVaeDigits(digits);
+    el.classList.remove('invalid');
+    setVaeStatus(el.getAttribute('data-id'), '');
+    if (caretWasAtEnd) el.setSelectionRange(el.value.length, el.value.length);
+  });
+
+  document.getElementById('results').addEventListener('blur', function(e){
+    var el = e.target;
+    if (!el.classList.contains('vae-input')) return;
+    var id = el.getAttribute('data-id');
+    var block = el.closest('.vae-block');
+    if (el.value === ''){
+      el.classList.remove('invalid');
+      if (block) block.classList.remove('overdue');
+      setVaeStatus(id, 'Aún no se realizó VAE');
+      saveVae(id, '');
+      return;
+    }
+    var check = isValidVaeDate(el.value);
+    if (!check.ok){
+      el.classList.add('invalid');
+      if (check.reason === 'futuro'){
+        setVaeStatus(id, 'fecha posterior a la fecha del día, no válida', 'err');
+      } else {
+        setVaeStatus(id, 'formato DD/MM/AA', 'err');
+      }
+      return;
+    }
+    el.classList.remove('invalid');
+    if (block) block.classList.toggle('overdue', isVaeOverdue(el.value));
+    saveVae(id, el.value);
+  }, true);
+
+  // ---------- Data loading / sync ----------
+  function setData(records, source){
+    records.forEach(function(r, i){ r.id = i; });
+    state.data = records;
+    localStorage.setItem(LS_DATA, JSON.stringify(records));
+    document.getElementById('peopleCountLabel').textContent = records.length + ' personas cargadas';
+    renderResults();
+  }
+
+  function loadCached(){
+    try {
+      var raw = localStorage.getItem(LS_DATA);
+      if (raw){
+        state.data = JSON.parse(raw);
+        document.getElementById('peopleCountLabel').textContent = state.data.length + ' personas cargadas';
+      }
+    } catch(e){}
+    var lastSync = localStorage.getItem(LS_SYNC);
+    document.getElementById('syncLabel').textContent = lastSync ? ('Actualizado ' + formatSyncTime(lastSync)) : 'Sin sincronizar todavía';
+    document.getElementById('lastSyncText').textContent = formatSyncTime(lastSync);
+  }
+
+  function loadSeedIfEmpty(){
+    if (state.data.length) { renderResults(); return; }
+    fetch('data.json').then(function(r){ return r.json(); }).then(function(json){
+      if (!state.data.length){
+        setData(json, 'seed');
+      }
+    }).catch(function(){ renderResults(); });
+  }
+
+  function syncFromUrl(showToast){
+    var url = localStorage.getItem(LS_CSV_URL);
+    if (!url){
+      if (showToast) toast('No configuraste un link de Google Sheets todavía');
+      return;
+    }
+    if (showToast) toast('Sincronizando…');
+    fetch(url, {cache:'no-store'}).then(function(r){
+      if (!r.ok) throw new Error('bad response');
+      return r.text();
+    }).then(function(text){
+      var records = parseCSV(text);
+      if (!records.length) throw new Error('empty');
+      setData(records, 'sheets');
+      var now = new Date().toISOString();
+      localStorage.setItem(LS_SYNC, now);
+      document.getElementById('syncLabel').textContent = 'Actualizado ' + formatSyncTime(now);
+      document.getElementById('lastSyncText').textContent = formatSyncTime(now);
+      if (showToast) toast('Datos actualizados: ' + records.length + ' personas');
+    }).catch(function(){
+      if (showToast) toast('No se pudo sincronizar (revisá el link o tu conexión)');
+    });
+  }
+
+  function syncVaeFromUrl(showToast){
+    var url = localStorage.getItem(LS_VAE_URL);
+    if (!url){
+      if (showToast) toast('No configuraste el link de la hoja VAE todavía');
+      return;
+    }
+    fetch(url, {cache:'no-store'}).then(function(r){
+      if (!r.ok) throw new Error('bad response');
+      return r.text();
+    }).then(function(text){
+      var entries = parseVaeCSV(text);
+      var byKey = {};
+      entries.forEach(function(en){ byKey[vaeKey(en.apellido, en.nombre)] = en; });
+      state.data.forEach(function(p){
+        var match = byKey[vaeKey(p.apellido, p.nombre)];
+        p.vae = match ? (match.vaeActual || '') : (p.vae || '');
+        p.vaeAnterior = match ? (match.vaeAnterior || '') : (p.vaeAnterior || '');
+        p.vaeAnterior1 = match ? (match.vaeAnterior1 || '') : (p.vaeAnterior1 || '');
+      });
+      localStorage.setItem(LS_DATA, JSON.stringify(state.data));
+      renderResults();
+      refreshOpenHistoryPanels();
+      if (showToast) toast('VAE actualizado');
+    }).catch(function(){
+      if (showToast) toast('No se pudo sincronizar la hoja VAE');
+    });
+  }
+
+  function refreshOpenHistoryPanels(){
+    document.querySelectorAll('.vae-history[data-open="1"]').forEach(function(panel){
+      var id = panel.getAttribute('data-history-for');
+      var record = state.data.filter(function(p){ return String(p.id) === String(id); })[0];
+      panel.innerHTML = renderHistoryList(record || {});
+    });
+  }
+
+  function importFile(file){
+    var name = file.name.toLowerCase();
+    if (name.endsWith('.csv')){
+      var reader = new FileReader();
+      reader.onload = function(){
+        var records = parseCSV(reader.result);
+        if (records.length){
+          setData(records, 'file');
+          var now = new Date().toISOString();
+          localStorage.setItem(LS_SYNC, now);
+          document.getElementById('syncLabel').textContent = 'Actualizado ' + formatSyncTime(now);
+          document.getElementById('lastSyncText').textContent = formatSyncTime(now);
+          toast('Importado: ' + records.length + ' personas');
+        } else {
+          toast('No se encontraron datos en el archivo');
+        }
+      };
+      reader.readAsText(file, 'UTF-8');
+    } else {
+      // xlsx/xls: load SheetJS on demand
+      toast('Cargando lector de Excel…');
+      var script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      script.onload = function(){
+        var reader = new FileReader();
+        reader.onload = function(){
+          try {
+            var wb = XLSX.read(reader.result, {type:'array'});
+            var ws = wb.Sheets[wb.SheetNames[0]];
+            var csv = XLSX.utils.sheet_to_csv(ws);
+            var records = parseCSV(csv);
+            if (records.length){
+              setData(records, 'file');
+              var now = new Date().toISOString();
+              localStorage.setItem(LS_SYNC, now);
+              document.getElementById('syncLabel').textContent = 'Actualizado ' + formatSyncTime(now);
+              document.getElementById('lastSyncText').textContent = formatSyncTime(now);
+              toast('Importado: ' + records.length + ' personas');
+            } else {
+              toast('No se encontraron datos en el archivo');
+            }
+          } catch(e){ toast('No se pudo leer el archivo'); }
+        };
+        reader.readAsArrayBuffer(file);
+      };
+      script.onerror = function(){ toast('Necesitás conexión a internet para importar Excel la primera vez'); };
+      document.head.appendChild(script);
+    }
+  }
+
+  // ---------- Login (usuario / contraseña, guardado local por celular) ----------
+  var currentUser = null;
+  var lockMode = 'login'; // 'login' | 'register'
+
+  function sha(str){
+    // hash liviano no criptográfico: alcanza para un control de acceso local, no es una barrera de seguridad fuerte
+    var h = 0;
+    for (var i = 0; i < str.length; i++){ h = (h * 31 + str.charCodeAt(i)) | 0; }
+    return 'h' + h;
+  }
+
+  function usernameKey(u){ return (u || '').trim().toLowerCase(); }
+  function hashCred(key, password){ return sha(key + '::' + password); }
+
+  function getUsers(){
+    try { return JSON.parse(localStorage.getItem(LS_USERS)) || {}; }
+    catch(e){ return {}; }
+  }
+  function saveUsers(users){ localStorage.setItem(LS_USERS, JSON.stringify(users)); }
+
+  function showLock(mode){
+    lockMode = mode;
+    document.getElementById('loginUser').value = '';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPassConfirm').value = '';
+    document.getElementById('lockError').textContent = '';
+
+    var title = document.getElementById('lockTitle');
+    var sub = document.getElementById('lockSubtitle');
+    var confirmField = document.getElementById('loginPassConfirm');
+    var skipLink = document.getElementById('lockSkipLink');
+    var submitBtn = document.getElementById('loginSubmitBtn');
+
+    if (mode === 'login'){
+      title.textContent = 'Directorio Portal';
+      sub.textContent = 'Ingresá tu usuario y contraseña';
+      confirmField.style.display = 'none';
+      skipLink.style.display = 'none';
+      submitBtn.textContent = 'Ingresar';
+    } else {
+      title.textContent = 'Crear tu usuario';
+      sub.textContent = 'Elegí un usuario y una contraseña para este celular';
+      confirmField.style.display = 'block';
+      skipLink.style.display = 'inline-block';
+      submitBtn.textContent = 'Crear usuario';
+    }
+    document.getElementById('lockScreen').classList.remove('hidden');
+    setTimeout(function(){ document.getElementById('loginUser').focus(); }, 50);
+  }
+
+  function hideLock(){
+    document.getElementById('lockScreen').classList.add('hidden');
+  }
+
+  // Devuelve {ok:true} o {ok:false, error:'...'} y, si sale bien, guarda el usuario.
+  function attemptRegister(username, password, confirmPassword){
+    var key = usernameKey(username);
+    if (!key || password.length < 4){
+      return { ok:false, error:'Completá un usuario y una contraseña de al menos 4 caracteres' };
+    }
+    if (password !== confirmPassword){
+      return { ok:false, error:'Las contraseñas no coinciden' };
+    }
+    var users = getUsers();
+    if (users[key]){
+      return { ok:false, error:'Ese usuario ya existe en este celular' };
+    }
+    users[key] = { username: username.trim(), hash: hashCred(key, password) };
+    saveUsers(users);
+    localStorage.setItem(LS_LOGIN_ONBOARDED, '1');
+    return { ok:true, username: username.trim() };
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var username = document.getElementById('loginUser').value;
+    var password = document.getElementById('loginPass').value;
+    var errorEl = document.getElementById('lockError');
+
+    if (lockMode === 'login'){
+      var key = usernameKey(username);
+      var users = getUsers();
+      if (!users[key] || users[key].hash !== hashCred(key, password)){
+        errorEl.textContent = 'Usuario o contraseña incorrectos';
+        return;
+      }
+      currentUser = users[key].username;
+      hideLock();
+    } else {
+      var confirmPassword = document.getElementById('loginPassConfirm').value;
+      var res = attemptRegister(username, password, confirmPassword);
+      if (!res.ok){ errorEl.textContent = res.error; return; }
+      currentUser = res.username;
+      toast('Usuario creado');
+      hideLock();
+      refreshUsersUI();
+    }
+  });
+
+  document.getElementById('lockSkipLink').addEventListener('click', function(e){
+    e.preventDefault();
+    if (lockMode !== 'register') return;
+    localStorage.setItem(LS_LOGIN_ONBOARDED, '1');
+    hideLock();
+  });
+
+  function refreshUsersUI(){
+    var users = getUsers();
+    var count = Object.keys(users).length;
+    var text = count === 0
+      ? 'No hay usuarios registrados todavía.'
+      : (count + (count === 1 ? ' usuario registrado' : ' usuarios registrados') + ' en este celular.');
+    if (currentUser) text += ' Sesión actual: ' + currentUser + '.';
+    document.getElementById('usersStatusText').textContent = text;
+    document.getElementById('logoutBtn').style.display = currentUser ? 'block' : 'none';
+  }
+
+  // ---------- Settings panel ----------
+  var overlay = document.getElementById('settingsOverlay');
+  function openSettings(){
+    document.getElementById('csvUrlInput').value = localStorage.getItem(LS_CSV_URL) || '';
+    document.getElementById('scriptUrlInput').value = localStorage.getItem(LS_SCRIPT_URL) || '';
+    document.getElementById('vaeUrlInput').value = localStorage.getItem(LS_VAE_URL) || '';
+    document.getElementById('lastSyncText').textContent = formatSyncTime(localStorage.getItem(LS_SYNC));
+    document.getElementById('addUserForm').style.display = 'none';
+    refreshUsersUI();
+    overlay.classList.add('show');
+  }
+  function closeSettings(){ overlay.classList.remove('show'); }
+
+  document.getElementById('settingsBtn').addEventListener('click', openSettings);
+  document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) closeSettings(); });
+
+  document.getElementById('csvUrlInput').addEventListener('change', function(){
+    localStorage.setItem(LS_CSV_URL, this.value.trim());
+  });
+
+  document.getElementById('scriptUrlInput').addEventListener('change', function(){
+    localStorage.setItem(LS_SCRIPT_URL, this.value.trim());
+  });
+
+  document.getElementById('vaeUrlInput').addEventListener('change', function(){
+    localStorage.setItem(LS_VAE_URL, this.value.trim());
+  });
+
+  document.getElementById('syncNowBtn').addEventListener('click', function(){
+    localStorage.setItem(LS_CSV_URL, document.getElementById('csvUrlInput').value.trim());
+    localStorage.setItem(LS_VAE_URL, document.getElementById('vaeUrlInput').value.trim());
+    syncFromUrl(true);
+    syncVaeFromUrl(false);
+  });
+
+  document.getElementById('fileImportInput').addEventListener('change', function(e){
+    if (e.target.files && e.target.files[0]) importFile(e.target.files[0]);
+  });
+
+  document.getElementById('addUserBtn').addEventListener('click', function(){
+    document.getElementById('newUserName').value = '';
+    document.getElementById('newUserPass').value = '';
+    document.getElementById('newUserPassConfirm').value = '';
+    document.getElementById('addUserError').textContent = '';
+    document.getElementById('addUserForm').style.display = 'block';
+  });
+  document.getElementById('cancelAddUserBtn').addEventListener('click', function(){
+    document.getElementById('addUserForm').style.display = 'none';
+  });
+  document.getElementById('confirmAddUserBtn').addEventListener('click', function(){
+    var res = attemptRegister(
+      document.getElementById('newUserName').value,
+      document.getElementById('newUserPass').value,
+      document.getElementById('newUserPassConfirm').value
+    );
+    if (!res.ok){
+      document.getElementById('addUserError').textContent = res.error;
+      return;
+    }
+    document.getElementById('addUserForm').style.display = 'none';
+    toast('Usuario creado');
+    refreshUsersUI();
+  });
+  document.getElementById('logoutBtn').addEventListener('click', function(){
+    currentUser = null;
+    closeSettings();
+    showLock('login');
+  });
+  document.getElementById('resetUsersBtn').addEventListener('click', function(){
+    if (!window.confirm('¿Seguro que querés quitar todos los usuarios de este celular? La app va a quedar sin pedir sesión.')) return;
+    localStorage.removeItem(LS_USERS);
+    localStorage.setItem(LS_LOGIN_ONBOARDED, '1');
+    currentUser = null;
+    toast('Control de acceso desactivado en este celular');
+    refreshUsersUI();
+  });
+
+  // ---------- Search ----------
+  var searchInput = document.getElementById('searchInput');
+  var searchTimer = null;
+  searchInput.addEventListener('input', function(){
+    var val = this.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function(){
+      state.query = val;
+      renderResults();
+    }, 120);
+  });
+
+  // ---------- Init ----------
+  function init(){
+    loadCached();
+    renderResults();
+    loadSeedIfEmpty();
+    syncFromUrl(false);
+    syncVaeFromUrl(false);
+
+    var users = getUsers();
+    if (Object.keys(users).length > 0){
+      showLock('login');
+    } else if (!localStorage.getItem(LS_LOGIN_ONBOARDED)){
+      showLock('register');
+    }
+
+    if ('serviceWorker' in navigator){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
