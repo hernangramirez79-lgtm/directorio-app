@@ -694,11 +694,11 @@
     var scriptUrl = localStorage.getItem(LS_SCRIPT_URL);
     if (!scriptUrl){
       if (showToast) toast('No configuraste el link del Apps Script todavía');
-      return;
+      return Promise.resolve();
     }
     var url = scriptUrl + (scriptUrl.indexOf('?') === -1 ? '?' : '&') + 'sheet=Directorio';
     if (showToast) toast('Sincronizando…');
-    fetch(url, {cache:'no-store'}).then(function(r){
+    return fetch(url, {cache:'no-store'}).then(function(r){
       if (!r.ok) throw new Error('bad response');
       return r.text();
     }).then(function(text){
@@ -940,8 +940,7 @@
 
   document.getElementById('syncNowBtn').addEventListener('click', function(){
     localStorage.setItem(LS_SCRIPT_URL, document.getElementById('scriptUrlInput').value.trim());
-    syncFromUrl(true);
-    syncVaeFromUrl(false);
+    syncFromUrl(true).then(function(){ syncVaeFromUrl(false); });
   });
 
   document.getElementById('fileImportInput').addEventListener('change', function(e){
@@ -1003,8 +1002,7 @@
     loadCached();
     renderResults();
     loadSeedIfEmpty();
-    syncFromUrl(false);
-    syncVaeFromUrl(false);
+    syncFromUrl(false).then(function(){ syncVaeFromUrl(false); });
 
     var users = getUsers();
     if (Object.keys(users).length > 0){
