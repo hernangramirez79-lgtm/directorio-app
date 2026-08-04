@@ -509,6 +509,57 @@
     return 'badge-default';
   }
 
+  // ---------- Hoja Asistencia (Apellido, Nombre, Historial "dd/mm/aa:CODIGO, ...") ----------
+  var ASISTENCIA_CODES = {
+    'P': 'Presente', 'T': 'Trabajo', 'EN': 'Enfermo', 'ES': 'Estudio',
+    'PM': 'Permiso', 'R': 'Rueda', 'O': 'Otra Capilla', 'V': 'Vacaciones', '?': 'Incierto'
+  };
+
+  var ASISTENCIA_HEADER_MAP = {
+    'apellido': 'apellido',
+    'nombre': 'nombre',
+    'historial': 'historial'
+  };
+
+  function mapAsistenciaRow(obj){
+    var rec = { apellido:'', nombre:'', historial:'' };
+    Object.keys(obj).forEach(function(key){
+      var target = ASISTENCIA_HEADER_MAP[key];
+      if (target) rec[target] = (obj[key] || '').toString().trim();
+    });
+    return rec;
+  }
+
+  function parseAsistenciaCSV(text){
+    return csvToObjects(text).map(mapAsistenciaRow);
+  }
+
+  // Parsea "dd/mm/aa:CODIGO, dd/mm/aa:CODIGO" en una lista ordenada de {fecha, codigo, etiqueta}
+  function parseAsistenciaHistorial(historial){
+    if (!historial) return [];
+    return historial.split(',').map(function(chunk){
+      var parts = chunk.trim().split(':');
+      var fecha = (parts[0] || '').trim();
+      var codigo = (parts[1] || '').trim();
+      return { fecha: fecha, codigo: codigo, etiqueta: ASISTENCIA_CODES[codigo.toUpperCase()] || codigo };
+    }).filter(function(en){ return en.fecha; });
+  }
+
+  function renderAsistenciaList(record){
+    var entries = parseAsistenciaHistorial(record.asistenciaHistorial);
+    if (!entries.length) return '<p class="vae-history-empty">Sin registros de asistencia todavía.</p>';
+    entries.sort(function(a, b){ return parseHistDate_(b.fecha) - parseHistDate_(a.fecha); });
+    return '<ul class="vae-history-list">' + entries.map(function(en){
+      return '<li><span class="vh-date">' + escapeHtml(en.fecha) + '</span><span class="vh-time">' + escapeHtml(en.etiqueta) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+
+  function parseHistDate_(str){
+    var m = /^(\d{2})\/(\d{2})\/(\d{2})$/.exec(str || '');
+    if (!m) return 0;
+    return new Date(2000 + parseInt(m[3],10), parseInt(m[2],10) - 1, parseInt(m[1],10)).getTime();
+  }
+
   // ---------- Rendering ----------
   function renderResults(){
     var container = document.getElementById('results');
@@ -579,6 +630,10 @@
       '</div>' +
       '<button type="button" class="vae-history-toggle" data-id="' + p.id + '">Ver historial de VAE</button>' +
       '<div class="vae-history" data-history-for="' + p.id + '" style="display:none;"></div>' +
+      (p.asistenciaHistorial ? (
+        '<button type="button" class="vae-history-toggle asistencia-toggle" data-id="' + p.id + '">Ver asistencia</button>' +
+        '<div class="vae-history asistencia-panel" data-asistencia-for="' + p.id + '" style="display:none;"></div>'
+      ) : '') +
       '<div class="field-grid">' +
         fieldHtml('Nacimiento', p.fechaNacimiento) +
         fieldHtml('Tel. fijo', p.telefonoFijo, {tel:true}) +
@@ -602,6 +657,26 @@
   }
 
   document.getElementById('results').addEventListener('click', function(e){
+    var asistenciaBtn = e.target.closest('.asistencia-toggle');
+    if (asistenciaBtn){
+      var aid = asistenciaBtn.getAttribute('data-id');
+      var aPanel = document.querySelector('.asistencia-panel[data-asistencia-for="' + aid + '"]');
+      if (!aPanel) return;
+      var aOpen = aPanel.getAttribute('data-open') === '1';
+      if (aOpen){
+        aPanel.style.display = 'none';
+        aPanel.removeAttribute('data-open');
+        asistenciaBtn.textContent = 'Ver asistencia';
+        return;
+      }
+      var aRecord = state.data.filter(function(p){ return String(p.id) === String(aid); })[0];
+      aPanel.innerHTML = renderAsistenciaList(aRecord || {});
+      aPanel.style.display = 'block';
+      aPanel.setAttribute('data-open', '1');
+      asistenciaBtn.textContent = 'Ocultar asistencia';
+      return;
+    }
+
     var btn = e.target.closest('.vae-history-toggle');
     if (!btn) return;
     var id = btn.getAttribute('data-id');
@@ -844,6 +919,41 @@
       if (showToast) toast('No se pudo sincronizar el grupo familiar');
     });
   }
+
+  function syncAsistenciaFromUrl(showToast){
+    var scriptUrl = localStorage.getItem(LS_SCRIPT_URL);
+    if (!scriptUrl){
+      if (showToast) toast('No configuraste el link del Apps Script todavía');
+      return;
+    }
+    var url = scriptUrl + (scriptUrl.indexOf('?') === -1 ? '?' : '&') + 'sheet=Asistencia';
+    fetch(url, {cache:'no-store'}).then(function(r){
+      if (!r.ok) throw new Error('bad response');
+      return r.text();
+    }).then(function(text){
+      var entries = parseAsistenciaCSV(text);
+      var byKey = {};
+      entries.forEach(function(en){ byKey[grupoKey(en.apellido, en.nombre)] = en; });
+      state.data.forEach(function(p){
+        var match = byKey[grupoKey(p.apellido, p.nombre)];
+        p.asistenciaHistorial = match ? (match.historial || '') : (p.asistenciaHistorial || '');
+      });
+      localStorage.setItem(LS_DATA, JSON.stringify(state.data));
+      refreshOpenAsistenciaPanels();
+      if (showToast) toast('Asistencia actualizada');
+    }).catch(function(){
+      if (showToast) toast('No se pudo sincronizar la asistencia');
+    });
+  }
+
+  function refreshOpenAsistenciaPanels(){
+    document.querySelectorAll('.asistencia-panel[data-open="1"]').forEach(function(panel){
+      var id = panel.getAttribute('data-asistencia-for');
+      var record = state.data.filter(function(p){ return String(p.id) === String(id); })[0];
+      panel.innerHTML = renderAsistenciaList(record || {});
+    });
+  }
+
 
   function refreshOpenHistoryPanels(){
     document.querySelectorAll('.vae-history[data-open="1"]').forEach(function(panel){
@@ -1120,7 +1230,7 @@
 
   document.getElementById('syncNowBtn').addEventListener('click', function(){
     localStorage.setItem(LS_SCRIPT_URL, document.getElementById('scriptUrlInput').value.trim());
-    syncFromUrl(true).then(function(){ syncVaeFromUrl(false); syncGrupoFamiliarFromUrl(false); });
+    syncFromUrl(true).then(function(){ syncVaeFromUrl(false); syncGrupoFamiliarFromUrl(false); syncAsistenciaFromUrl(false); });
   });
 
   document.getElementById('fileImportInput').addEventListener('change', function(e){
@@ -1184,7 +1294,7 @@
     loadCached();
     renderResults();
     loadSeedIfEmpty();
-    syncFromUrl(false).then(function(){ syncVaeFromUrl(false); syncGrupoFamiliarFromUrl(false); });
+    syncFromUrl(false).then(function(){ syncVaeFromUrl(false); syncGrupoFamiliarFromUrl(false); syncAsistenciaFromUrl(false); });
 
     var users = getUsers();
     if (Object.keys(users).length > 0){
