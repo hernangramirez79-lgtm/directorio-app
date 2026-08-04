@@ -173,6 +173,14 @@
     flex:none;width:150px;display:flex;flex-direction:column;align-items:center;gap:8px;
     padding:12px 10px;background:#fafbfc;border:1px solid var(--line);border-radius:10px;
   }
+  .summary-month-card.clickable-month{cursor:pointer;}
+  .summary-month-card.clickable-month:active{background:var(--paper);}
+  .month-detail-section{margin-bottom:16px;}
+  .month-detail-heading{
+    display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:var(--ink);
+    margin:0 0 8px;
+  }
+  .month-detail-heading b{color:var(--ink-soft);font-weight:700;}
   .summary-month-title{margin:0;font-size:12px;font-weight:700;color:var(--navy-2);text-align:center;}
   .summary-scroll.person-summary-scroll{margin-bottom:10px;}
   .summary-month-card .pie-legend{width:100%;}
@@ -361,6 +369,16 @@
 
     <div class="divider"></div>
     <button class="btn btn-outline" id="closeSettingsBtn">Cerrar</button>
+  </div>
+</div>
+
+<div class="overlay" id="monthDetailOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2 id="monthDetailTitle">Asistencia</h2>
+    <div id="monthDetailBody"></div>
+    <div class="divider"></div>
+    <button class="btn btn-outline" id="closeMonthDetailBtn">Cerrar</button>
   </div>
 </div>
 
@@ -722,7 +740,7 @@
       var monthEntries = entries.filter(function(en){ return monthKeyFromFecha(en.fecha) === mk; });
       var counts = codeCounts(monthEntries);
       if (!Object.keys(counts).length) return '';
-      return '<div class="summary-month-card">' +
+      return '<div class="summary-month-card clickable-month" data-month="' + mk + '" role="button" tabindex="0">' +
         '<p class="summary-month-title">' + escapeHtml(monthLabel(mk)) + '</p>' +
         buildPieSvg(counts, 84) + buildPieLegend(counts) +
       '</div>';
@@ -739,6 +757,46 @@
       '<div class="summary-scroll">' + cards + '</div>' +
     '</div>';
   }
+
+  function renderMonthDetail(mk){
+    var byCode = {};
+    state.data.forEach(function(p){
+      parseAsistenciaHistorial(p.asistenciaHistorial).forEach(function(en){
+        if (monthKeyFromFecha(en.fecha) !== mk) return;
+        var c = (en.codigo || '').toUpperCase();
+        byCode[c] = byCode[c] || [];
+        byCode[c].push({ nombre: p.nombreApellido, fecha: en.fecha });
+      });
+    });
+    var sections = CODE_ORDER.filter(function(c){ return byCode[c] && byCode[c].length; }).map(function(c){
+      var list = byCode[c].slice().sort(function(a, b){
+        var byDate = parseHistDate_(b.fecha) - parseHistDate_(a.fecha);
+        return byDate !== 0 ? byDate : a.nombre.localeCompare(b.nombre);
+      });
+      var items = list.map(function(it){
+        return '<li><span class="vh-date">' + escapeHtml(it.nombre) + '</span><span class="vh-time">' + escapeHtml(it.fecha) + '</span></li>';
+      }).join('');
+      return '<div class="month-detail-section">' +
+        '<p class="month-detail-heading"><span class="pie-dot" style="background:' + (CODE_COLORS[c] || '#9aa0a6') + '"></span>' +
+          escapeHtml(ASISTENCIA_CODES[c] || c) + ' <b>(' + list.length + ')</b></p>' +
+        '<ul class="vae-history-list">' + items + '</ul>' +
+      '</div>';
+    }).join('');
+    return sections || '<p class="vae-history-empty">Sin datos para este mes.</p>';
+  }
+
+  function openMonthDetail(mk){
+    document.getElementById('monthDetailTitle').textContent = 'Asistencia · ' + monthLabel(mk);
+    document.getElementById('monthDetailBody').innerHTML = renderMonthDetail(mk);
+    document.getElementById('monthDetailOverlay').classList.add('show');
+  }
+  function closeMonthDetail(){
+    document.getElementById('monthDetailOverlay').classList.remove('show');
+  }
+  document.getElementById('closeMonthDetailBtn').addEventListener('click', closeMonthDetail);
+  document.getElementById('monthDetailOverlay').addEventListener('click', function(e){
+    if (e.target === this) closeMonthDetail();
+  });
 
   // ---------- Rendering ----------
   function renderResults(){
@@ -836,13 +894,16 @@
     }).join('') + '</ul>';
   }
 
+  var summaryDragMoved = false;
   document.getElementById('results').addEventListener('mousedown', function(e){
     var scroller = e.target.closest('.summary-scroll');
     if (!scroller) return;
     var startX = e.pageX;
     var startScroll = scroller.scrollLeft;
+    summaryDragMoved = false;
     scroller.classList.add('dragging');
     function onMove(ev){
+      if (Math.abs(ev.pageX - startX) > 5) summaryDragMoved = true;
       scroller.scrollLeft = startScroll - (ev.pageX - startX);
     }
     function onUp(){
@@ -872,6 +933,13 @@
         var dir = parseInt(navBtn.getAttribute('data-scroll-dir'), 10) || 1;
         scroller.scrollBy({ left: dir * 165, behavior: 'smooth' });
       }
+      return;
+    }
+    var monthCard = e.target.closest('.clickable-month');
+    if (monthCard){
+      if (summaryDragMoved){ summaryDragMoved = false; return; }
+      var mk = monthCard.getAttribute('data-month');
+      if (mk) openMonthDetail(mk);
       return;
     }
     var asistenciaBtn = e.target.closest('.asistencia-toggle');
