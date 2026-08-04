@@ -1,4 +1,4 @@
-const CACHE_NAME = 'directorio-cache-v2';
+const CACHE_NAME = 'directorio-cache-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -26,20 +26,21 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  const isExternal = !req.url.startsWith(self.location.origin);
 
-  // Network-first for external requests (Google Sheets / Apps Script), so data updates when online.
-  if (isExternal) {
-    event.respondWith(
-      fetch(req).catch(() =>
-        caches.match(req).then((cached) => cached || Response.error())
-      )
-    );
-    return;
-  }
-
-  // Cache-first for the app shell so it works fully offline.
+  // Network-first for everything (own app files AND external Google Sheets / Apps Script),
+  // falling back to cache only when there's no connection. This way, updates to the app
+  // (index.html, etc.) are picked up automatically next time it's opened online, instead
+  // of getting stuck on an old cached version.
   event.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req))
+    fetch(req).then((res) => {
+      // Cache a fresh copy of same-origin GET requests for offline fallback.
+      if (req.method === 'GET' && req.url.startsWith(self.location.origin)) {
+        const resClone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+      }
+      return res;
+    }).catch(() =>
+      caches.match(req).then((cached) => cached || Response.error())
+    )
   );
 });
