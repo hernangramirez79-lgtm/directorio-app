@@ -100,6 +100,21 @@
   .field .value a{color:var(--navy-2);text-decoration:none;font-weight:600;}
   .field.empty-field .value{color:#b7bec9;font-style:italic;}
 
+  .grupo-block{
+    background:#eef3f8;border:1px solid #cfe0ee;border-radius:10px;
+    padding:10px 12px;margin:0 0 10px;display:flex;flex-direction:column;gap:6px;
+  }
+  .grupo-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13px;}
+  .grupo-label{color:var(--navy-2);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;flex:none;}
+  .grupo-value{color:var(--ink);text-align:right;}
+  .badge{
+    display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:700;
+  }
+  .badge-regular{background:#e2f3e8;color:var(--ok);}
+  .badge-no-regular{background:#fdecea;color:var(--danger);}
+  .badge-santa-cena{background:#e6ecfb;color:#3452b4;}
+  .badge-default{background:#eceef2;color:var(--ink-soft);}
+
   .vae-block{
     margin:-2px 0 10px;padding:10px 12px;background:#fbf6ea;border:1px solid #ecd9a3;
     border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
@@ -454,6 +469,46 @@
     return normalize(apellido) + '|' + normalize(nombre);
   }
 
+  // ---------- Hoja GrupoFamiliar (Apellido, Nombre, Grupo Familiar, Estado, Siervo Responsable) ----------
+  var GRUPO_HEADER_MAP = {
+    'apellido': 'apellido',
+    'nombre': 'nombre',
+    'grupo familiar': 'grupoFamiliar',
+    'estado': 'estado',
+    'siervo responsable': 'siervo'
+  };
+
+  function mapGrupoRow(obj){
+    var rec = { apellido:'', nombre:'', grupoFamiliar:'', estado:'', siervo:'' };
+    Object.keys(obj).forEach(function(key){
+      var target = GRUPO_HEADER_MAP[key];
+      if (target) rec[target] = (obj[key] || '').toString().trim();
+    });
+    return rec;
+  }
+
+  function parseGrupoCSV(text){
+    return csvToObjects(text).map(mapGrupoRow);
+  }
+
+  // Coincidencia más laxa que vaeKey: solo apellido + primera palabra del nombre,
+  // porque la planilla de asistencia suele acortar el nombre (sin segundo nombre).
+  function firstWord(str){
+    var n = normalize(str);
+    return n.split(' ')[0] || '';
+  }
+  function grupoKey(apellido, nombre){
+    return normalize(apellido) + '|' + firstWord(nombre);
+  }
+
+  function estadoBadgeClass(estado){
+    var n = normalize(estado);
+    if (n === 'regular') return 'badge-regular';
+    if (n === 'no regular') return 'badge-no-regular';
+    if (n.indexOf('santa cena') !== -1) return 'badge-santa-cena';
+    return 'badge-default';
+  }
+
   // ---------- Rendering ----------
   function renderResults(){
     var container = document.getElementById('results');
@@ -503,9 +558,17 @@
 
   function cardHtml(p){
     var sub = [p.localidad, p.edad ? (p.edad + ' años') : ''].filter(Boolean).join(' · ');
+    var grupoBlock = p.grupoFamiliar ? (
+      '<div class="grupo-block">' +
+        '<div class="grupo-row"><span class="grupo-label">Grupo Familiar</span><span class="grupo-value">' + escapeHtml(p.grupoFamiliar) + '</span></div>' +
+        (p.estadoAsistencia ? '<div class="grupo-row"><span class="grupo-label">Estado</span><span class="badge ' + estadoBadgeClass(p.estadoAsistencia) + '">' + escapeHtml(p.estadoAsistencia) + '</span></div>' : '') +
+        '<div class="grupo-row"><span class="grupo-label">Siervo Responsable</span><span class="grupo-value">' + escapeHtml(p.siervoResponsable || 'Sin asignar') + '</span></div>' +
+      '</div>'
+    ) : '';
     return '<div class="card">' +
       '<p class="card-name">' + escapeHtml(p.nombreApellido) + '</p>' +
       (sub ? '<p class="card-sub">' + escapeHtml(sub) + '</p>' : '') +
+      grupoBlock +
       '<div class="vae-block' + (isVaeOverdue(p.vae) ? ' overdue' : '') + '">' +
         '<span class="vae-label">VAE</span>' +
         '<div class="vae-input-wrap">' +
@@ -751,6 +814,34 @@
       if (showToast) toast('VAE actualizado');
     }).catch(function(){
       if (showToast) toast('No se pudo sincronizar la hoja VAE');
+    });
+  }
+
+  function syncGrupoFamiliarFromUrl(showToast){
+    var scriptUrl = localStorage.getItem(LS_SCRIPT_URL);
+    if (!scriptUrl){
+      if (showToast) toast('No configuraste el link del Apps Script todavía');
+      return;
+    }
+    var url = scriptUrl + (scriptUrl.indexOf('?') === -1 ? '?' : '&') + 'sheet=GrupoFamiliar';
+    fetch(url, {cache:'no-store'}).then(function(r){
+      if (!r.ok) throw new Error('bad response');
+      return r.text();
+    }).then(function(text){
+      var entries = parseGrupoCSV(text);
+      var byKey = {};
+      entries.forEach(function(en){ byKey[grupoKey(en.apellido, en.nombre)] = en; });
+      state.data.forEach(function(p){
+        var match = byKey[grupoKey(p.apellido, p.nombre)];
+        p.grupoFamiliar = match ? (match.grupoFamiliar || '') : (p.grupoFamiliar || '');
+        p.estadoAsistencia = match ? (match.estado || '') : (p.estadoAsistencia || '');
+        p.siervoResponsable = match ? (match.siervo || '') : (p.siervoResponsable || '');
+      });
+      localStorage.setItem(LS_DATA, JSON.stringify(state.data));
+      renderResults();
+      if (showToast) toast('Grupo familiar actualizado');
+    }).catch(function(){
+      if (showToast) toast('No se pudo sincronizar el grupo familiar');
     });
   }
 
@@ -1029,7 +1120,7 @@
 
   document.getElementById('syncNowBtn').addEventListener('click', function(){
     localStorage.setItem(LS_SCRIPT_URL, document.getElementById('scriptUrlInput').value.trim());
-    syncFromUrl(true).then(function(){ syncVaeFromUrl(false); });
+    syncFromUrl(true).then(function(){ syncVaeFromUrl(false); syncGrupoFamiliarFromUrl(false); });
   });
 
   document.getElementById('fileImportInput').addEventListener('change', function(e){
@@ -1093,7 +1184,7 @@
     loadCached();
     renderResults();
     loadSeedIfEmpty();
-    syncFromUrl(false).then(function(){ syncVaeFromUrl(false); });
+    syncFromUrl(false).then(function(){ syncVaeFromUrl(false); syncGrupoFamiliarFromUrl(false); });
 
     var users = getUsers();
     if (Object.keys(users).length > 0){
