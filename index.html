@@ -600,7 +600,7 @@
   // ---------- Hoja Asistencia (Apellido, Nombre, Historial "dd/mm/aa:CODIGO, ...") ----------
   var ASISTENCIA_CODES = {
     'P': 'Presente', 'T': 'Trabajo', 'EN': 'Enfermo', 'ES': 'Estudio',
-    'PM': 'Permiso', 'R': 'Rueda', 'O': 'Otra Capilla', 'V': 'Vacaciones', '?': 'Incierto'
+    'PM': 'Permiso', 'R': 'Rueda', 'O': 'Otra Capilla', 'V': 'Vacaciones', 'A': 'Ausente', '?': 'Incierto'
   };
 
   var ASISTENCIA_HEADER_MAP = {
@@ -670,9 +670,9 @@
   // ---------- Gráfico de torta de asistencia ----------
   var CODE_COLORS = {
     'P':'#2e7d4f', 'T':'#3452b4', 'EN':'#c0392b', 'ES':'#7b4fae',
-    'PM':'#c98a1f', 'R':'#0e8a8a', 'O':'#6b7280', 'V':'#c2578a', '?':'#9aa0a6'
+    'PM':'#c98a1f', 'R':'#0e8a8a', 'O':'#6b7280', 'V':'#c2578a', 'A':'#8a5a3b', '?':'#9aa0a6'
   };
-  var CODE_ORDER = ['P','T','EN','ES','PM','R','O','V','?'];
+  var CODE_ORDER = ['P','T','EN','ES','PM','R','O','V','A','?'];
   var MONTH_NAMES_ = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
   function codeCounts(entries){
