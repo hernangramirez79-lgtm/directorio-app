@@ -174,6 +174,7 @@
     padding:12px 10px;background:#fafbfc;border:1px solid var(--line);border-radius:10px;
   }
   .summary-month-title{margin:0;font-size:12px;font-weight:700;color:var(--navy-2);text-align:center;}
+  .summary-scroll.person-summary-scroll{margin-bottom:10px;}
   .summary-month-card .pie-legend{width:100%;}
   .summary-month-card .pie-legend-item{font-size:11.5px;}
   .mini-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line);}
@@ -583,8 +584,24 @@
   function renderAsistenciaList(record){
     var entries = parseAsistenciaHistorial(record.asistenciaHistorial);
     if (!entries.length) return '<p class="vae-history-empty">Sin registros de asistencia todavía.</p>';
-    var counts = codeCounts(entries);
-    var mini = '<div class="mini-summary">' + buildPieSvg(counts, 76) + buildPieLegend(counts) + '</div>';
+
+    var byMonth = {};
+    entries.forEach(function(en){
+      var mk = monthKeyFromFecha(en.fecha);
+      if (!mk) return;
+      byMonth[mk] = byMonth[mk] || [];
+      byMonth[mk].push(en);
+    });
+    var monthCards = allMonthKeysSorted(entries).map(function(mk){
+      var counts = codeCounts(byMonth[mk] || []);
+      if (!Object.keys(counts).length) return '';
+      return '<div class="summary-month-card">' +
+        '<p class="summary-month-title">' + escapeHtml(monthLabel(mk)) + '</p>' +
+        buildPieSvg(counts, 70) + buildPieLegend(counts) +
+      '</div>';
+    }).join('');
+    var mini = monthCards ? '<div class="summary-scroll person-summary-scroll">' + monthCards + '</div>' : '';
+
     entries.sort(function(a, b){ return parseHistDate_(b.fecha) - parseHistDate_(a.fecha); });
     var list = '<ul class="vae-history-list">' + entries.map(function(en){
       return '<li><span class="vh-date">' + escapeHtml(en.fecha) + '</span><span class="vh-time">' + escapeHtml(en.etiqueta) + '</span></li>';
