@@ -147,6 +147,18 @@
   .vh-date{color:var(--ink);font-weight:600;}
   .vh-time{color:var(--ink-soft);font-size:11.5px;flex:none;}
 
+  .summary-card{
+    background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:16px;margin-bottom:14px;border:1px solid var(--line);
+  }
+  .summary-title{margin:0 0 12px;font-size:14.5px;font-weight:700;color:var(--navy-2);}
+  .summary-body{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .mini-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+  .pie-legend{display:flex;flex-direction:column;gap:5px;flex:1;min-width:120px;}
+  .pie-legend-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink);}
+  .pie-legend-item b{margin-left:auto;color:var(--ink-soft);font-weight:700;}
+  .pie-dot{width:9px;height:9px;border-radius:50%;flex:none;}
+
   /* ---------- Overlay / Settings & PIN ---------- */
   .overlay{
     position:fixed;inset:0;background:rgba(20,28,40,0.55);z-index:50;
@@ -548,16 +560,115 @@
   function renderAsistenciaList(record){
     var entries = parseAsistenciaHistorial(record.asistenciaHistorial);
     if (!entries.length) return '<p class="vae-history-empty">Sin registros de asistencia todavía.</p>';
+    var counts = codeCounts(entries);
+    var mini = '<div class="mini-summary">' + buildPieSvg(counts, 76) + buildPieLegend(counts) + '</div>';
     entries.sort(function(a, b){ return parseHistDate_(b.fecha) - parseHistDate_(a.fecha); });
-    return '<ul class="vae-history-list">' + entries.map(function(en){
+    var list = '<ul class="vae-history-list">' + entries.map(function(en){
       return '<li><span class="vh-date">' + escapeHtml(en.fecha) + '</span><span class="vh-time">' + escapeHtml(en.etiqueta) + '</span></li>';
     }).join('') + '</ul>';
+    return mini + list;
   }
 
   function parseHistDate_(str){
     var m = /^(\d{2})\/(\d{2})\/(\d{2})$/.exec(str || '');
     if (!m) return 0;
     return new Date(2000 + parseInt(m[3],10), parseInt(m[2],10) - 1, parseInt(m[1],10)).getTime();
+  }
+
+  // ---------- Gráfico de torta de asistencia ----------
+  var CODE_COLORS = {
+    'P':'#2e7d4f', 'T':'#3452b4', 'EN':'#c0392b', 'ES':'#7b4fae',
+    'PM':'#c98a1f', 'R':'#0e8a8a', 'O':'#6b7280', 'V':'#c2578a', '?':'#9aa0a6'
+  };
+  var CODE_ORDER = ['P','T','EN','ES','PM','R','O','V','?'];
+  var MONTH_NAMES_ = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  function codeCounts(entries){
+    var counts = {};
+    entries.forEach(function(en){
+      var c = (en.codigo || '').toUpperCase();
+      if (!c) return;
+      counts[c] = (counts[c] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function buildPieSvg(counts, size){
+    var total = 0;
+    CODE_ORDER.forEach(function(c){ total += (counts[c] || 0); });
+    if (!total) return '';
+    var r = size / 2 - 2, cx = size / 2, cy = size / 2;
+    var start = -Math.PI / 2;
+    var paths = '';
+    CODE_ORDER.forEach(function(code){
+      var val = counts[code];
+      if (!val) return;
+      var color = CODE_COLORS[code] || '#9aa0a6';
+      if (val === total){
+        paths += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + color + '"></circle>';
+        return;
+      }
+      var angle = (val / total) * Math.PI * 2;
+      var end = start + angle;
+      var x1 = cx + r * Math.cos(start), y1 = cy + r * Math.sin(start);
+      var x2 = cx + r * Math.cos(end), y2 = cy + r * Math.sin(end);
+      var large = angle > Math.PI ? 1 : 0;
+      paths += '<path d="M' + cx + ',' + cy + ' L' + x1 + ',' + y1 + ' A' + r + ',' + r + ' 0 ' + large + ' 1 ' + x2 + ',' + y2 + ' Z" fill="' + color + '"></path>';
+      start = end;
+    });
+    return '<svg viewBox="0 0 ' + size + ' ' + size + '" width="' + size + '" height="' + size + '" style="flex:none;">' + paths + '</svg>';
+  }
+
+  function buildPieLegend(counts){
+    var items = CODE_ORDER.filter(function(c){ return counts[c]; }).map(function(c){
+      return '<div class="pie-legend-item"><span class="pie-dot" style="background:' + (CODE_COLORS[c] || '#9aa0a6') + '"></span>' +
+        escapeHtml(ASISTENCIA_CODES[c] || c) + '<b>' + counts[c] + '</b></div>';
+    });
+    return '<div class="pie-legend">' + items.join('') + '</div>';
+  }
+
+  function monthKeyFromFecha(fecha){
+    var m = /^(\d{2})\/(\d{2})\/(\d{2})$/.exec(fecha || '');
+    return m ? (m[2] + '/' + m[3]) : null;
+  }
+
+  function monthLabel(mk){
+    var p = mk.split('/');
+    var name = MONTH_NAMES_[parseInt(p[0], 10) - 1] || '';
+    return (name.charAt(0).toUpperCase() + name.slice(1)) + ' 20' + p[1];
+  }
+
+  function latestMonthWithData(entries){
+    var months = {};
+    entries.forEach(function(en){
+      var mk = monthKeyFromFecha(en.fecha);
+      if (mk) months[mk] = true;
+    });
+    var keys = Object.keys(months);
+    if (!keys.length) return null;
+    keys.sort(function(a, b){
+      var pa = a.split('/'), pb = b.split('/');
+      var da = new Date(2000 + parseInt(pa[1], 10), parseInt(pa[0], 10) - 1, 1);
+      var db = new Date(2000 + parseInt(pb[1], 10), parseInt(pb[0], 10) - 1, 1);
+      return da - db;
+    });
+    return keys[keys.length - 1];
+  }
+
+  function renderCongregationSummary(){
+    var entries = [];
+    state.data.forEach(function(p){
+      parseAsistenciaHistorial(p.asistenciaHistorial).forEach(function(en){ entries.push(en); });
+    });
+    var mk = latestMonthWithData(entries);
+    if (!mk) return '';
+    var monthEntries = entries.filter(function(en){ return monthKeyFromFecha(en.fecha) === mk; });
+    var counts = codeCounts(monthEntries);
+    if (!Object.keys(counts).length) return '';
+    return '<div class="summary-card">' +
+      '<p class="summary-title">Asistencia de la congregación · ' + escapeHtml(monthLabel(mk)) + '</p>' +
+      '<div class="summary-body">' + buildPieSvg(counts, 120) + buildPieLegend(counts) + '</div>' +
+    '</div>';
   }
 
   // ---------- Rendering ----------
@@ -573,7 +684,7 @@
 
     if (!state.query){
       countLine.textContent = state.data.length + ' personas en el directorio · escribí para buscar';
-      container.innerHTML = '';
+      container.innerHTML = renderCongregationSummary();
       return;
     }
 
@@ -939,6 +1050,7 @@
         p.asistenciaHistorial = match ? (match.historial || '') : (p.asistenciaHistorial || '');
       });
       localStorage.setItem(LS_DATA, JSON.stringify(state.data));
+      renderResults();
       refreshOpenAsistenciaPanels();
       if (showToast) toast('Asistencia actualizada');
     }).catch(function(){
