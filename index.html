@@ -70,6 +70,13 @@
     font-size:16px;background:#fff;color:var(--ink);outline:none;
   }
   .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);opacity:.55;}
+  .filter-row{margin-top:10px;display:flex;align-items:center;gap:8px;}
+  .filter-label{font-size:11px;color:#c9d4e4;flex:none;}
+  #siervoFilterSelect{
+    flex:1;min-width:0;padding:7px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.25);
+    background:rgba(255,255,255,0.1);color:#fff;font-size:12.5px;
+  }
+  #siervoFilterSelect option{color:#1c2430;}
   .status-line{
     margin-top:10px;display:flex;align-items:center;gap:6px;
     font-size:11.5px;color:#c9d4e4;
@@ -83,6 +90,22 @@
     text-align:center;color:var(--ink-soft);padding:60px 20px;font-size:14.5px;line-height:1.6;
   }
   .empty b{color:var(--ink);display:block;font-size:16px;margin-bottom:6px;}
+
+  .compact-list{background:var(--card);border-radius:var(--radius);border:1px solid var(--line);overflow:hidden;}
+  .compact-item{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:13px 16px;border-bottom:1px solid var(--line);cursor:pointer;background:none;
+    width:100%;text-align:left;border-left:none;border-right:none;border-top:none;font-size:14.5px;
+    font-family:inherit;color:var(--ink);
+  }
+  .compact-item:last-child{border-bottom:none;}
+  .compact-item:active{background:var(--paper);}
+  .compact-item-name{font-weight:600;color:var(--navy-2);}
+  .compact-item-sub{font-size:12px;color:var(--ink-soft);}
+  .back-link{
+    display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:var(--navy-2);
+    font-size:13px;font-weight:600;padding:6px 0;margin-bottom:10px;cursor:pointer;font-family:inherit;
+  }
 
   .card{
     background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
@@ -307,6 +330,12 @@
       <svg class="search-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1c2430" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
       <input id="searchInput" type="text" placeholder="Buscar por nombre o apellido…" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
+    <div class="filter-row">
+      <span class="filter-label">Siervo responsable</span>
+      <select id="siervoFilterSelect">
+        <option value="">Todos</option>
+      </select>
+    </div>
     <div class="status-line"><span class="dot"></span><span id="syncLabel">Sin sincronizar todavía</span></div>
   </header>
 
@@ -402,7 +431,9 @@
     data: [],
     filtered: [],
     query: '',
-    history: []
+    history: [],
+    siervoFilter: '',
+    selectedPersonId: null
   };
 
   // ---------- Utilities ----------
@@ -851,6 +882,44 @@
       return;
     }
 
+    if (state.siervoFilter){
+      if (state.selectedPersonId){
+        var person = state.data.filter(function(p){ return String(p.id) === String(state.selectedPersonId); })[0];
+        if (!person){
+          state.selectedPersonId = null;
+        } else {
+          countLine.textContent = '';
+          container.innerHTML = '<button type="button" class="back-link" id="backToListBtn">&#8249; Volver a la lista</button>' + cardHtml(person);
+          return;
+        }
+      }
+
+      var q2 = normalize(state.query);
+      var group = state.data.filter(function(p){
+        if (p.siervoResponsable !== state.siervoFilter) return false;
+        if (!q2) return true;
+        return normalize(p.nombreApellido).indexOf(q2) !== -1 ||
+               normalize(p.apellido).indexOf(q2) !== -1 ||
+               normalize(p.nombre).indexOf(q2) !== -1;
+      }).sort(function(a, b){ return a.nombreApellido.localeCompare(b.nombreApellido); });
+
+      countLine.textContent = group.length + (group.length === 1 ? ' persona' : ' personas') + ' · ' + state.siervoFilter;
+
+      if (!group.length){
+        container.innerHTML = '<div class="empty"><b>Sin resultados</b>No hay personas de este grupo con ese nombre.</div>';
+        return;
+      }
+
+      container.innerHTML = '<div class="compact-list">' + group.map(function(p){
+        var sub = [p.localidad, p.edad ? (p.edad + ' años') : ''].filter(Boolean).join(' · ');
+        return '<button type="button" class="compact-item" data-id="' + p.id + '">' +
+          '<span class="compact-item-name">' + escapeHtml(p.nombreApellido) + '</span>' +
+          (sub ? '<span class="compact-item-sub">' + escapeHtml(sub) + '</span>' : '') +
+        '</button>';
+      }).join('') + '</div>';
+      return;
+    }
+
     if (!state.query){
       countLine.textContent = state.data.length + ' personas en el directorio · escribí para buscar';
       container.innerHTML = renderBirthdaysCard() + renderCongregationSummary();
@@ -873,6 +942,41 @@
 
     container.innerHTML = matches.map(cardHtml).join('');
   }
+
+  function populateSiervoFilter(){
+    var select = document.getElementById('siervoFilterSelect');
+    var current = state.siervoFilter;
+    var names = {};
+    state.data.forEach(function(p){
+      if (p.siervoResponsable) names[p.siervoResponsable] = true;
+    });
+    var list = Object.keys(names).sort();
+    select.innerHTML = '<option value="">Todos</option>' + list.map(function(n){
+      return '<option value="' + escapeHtml(n) + '"' + (n === current ? ' selected' : '') + '>' + escapeHtml(n) + '</option>';
+    }).join('');
+    if (list.indexOf(current) === -1) state.siervoFilter = '';
+  }
+
+  document.getElementById('siervoFilterSelect').addEventListener('change', function(){
+    state.siervoFilter = this.value;
+    state.selectedPersonId = null;
+    renderResults();
+  });
+
+  document.getElementById('results').addEventListener('click', function(e){
+    var backBtn = e.target.closest('#backToListBtn');
+    if (backBtn){
+      state.selectedPersonId = null;
+      renderResults();
+      return;
+    }
+    var compactItem = e.target.closest('.compact-item');
+    if (compactItem){
+      state.selectedPersonId = compactItem.getAttribute('data-id');
+      renderResults();
+      return;
+    }
+  });
 
   function fieldHtml(label, value, opts){
     opts = opts || {};
@@ -1240,6 +1344,7 @@
         p.siervoResponsable = match ? (match.siervo || '') : (p.siervoResponsable || '');
       });
       localStorage.setItem(LS_DATA, JSON.stringify(state.data));
+      populateSiervoFilter();
       renderResults();
       if (showToast) toast('Grupo familiar actualizado');
     }).catch(function(){
@@ -1620,6 +1725,7 @@
   // ---------- Init ----------
   function init(){
     loadCached();
+    populateSiervoFilter();
     renderResults();
     loadSeedIfEmpty();
     syncFromUrl(false).then(function(){ syncVaeFromUrl(false); syncGrupoFamiliarFromUrl(false); syncAsistenciaFromUrl(false); });
