@@ -153,6 +153,14 @@
   }
   .summary-title{margin:0 0 12px;font-size:14.5px;font-weight:700;color:var(--navy-2);}
   .summary-body{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .summary-scroll{display:flex;gap:14px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+  .summary-month-card{
+    flex:none;width:150px;display:flex;flex-direction:column;align-items:center;gap:8px;
+    padding:12px 10px;background:#fafbfc;border:1px solid var(--line);border-radius:10px;
+  }
+  .summary-month-title{margin:0;font-size:12px;font-weight:700;color:var(--navy-2);text-align:center;}
+  .summary-month-card .pie-legend{width:100%;}
+  .summary-month-card .pie-legend-item{font-size:11.5px;}
   .mini-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line);}
   .pie-legend{display:flex;flex-direction:column;gap:5px;flex:1;min-width:120px;}
   .pie-legend-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink);}
@@ -655,19 +663,42 @@
     return keys[keys.length - 1];
   }
 
+  function allMonthKeysSorted(entries){
+    var months = {};
+    entries.forEach(function(en){
+      var mk = monthKeyFromFecha(en.fecha);
+      if (mk) months[mk] = true;
+    });
+    var keys = Object.keys(months);
+    keys.sort(function(a, b){
+      var pa = a.split('/'), pb = b.split('/');
+      var da = new Date(2000 + parseInt(pa[1], 10), parseInt(pa[0], 10) - 1, 1);
+      var db = new Date(2000 + parseInt(pb[1], 10), parseInt(pb[0], 10) - 1, 1);
+      return da - db;
+    });
+    return keys;
+  }
+
   function renderCongregationSummary(){
     var entries = [];
     state.data.forEach(function(p){
       parseAsistenciaHistorial(p.asistenciaHistorial).forEach(function(en){ entries.push(en); });
     });
-    var mk = latestMonthWithData(entries);
-    if (!mk) return '';
-    var monthEntries = entries.filter(function(en){ return monthKeyFromFecha(en.fecha) === mk; });
-    var counts = codeCounts(monthEntries);
-    if (!Object.keys(counts).length) return '';
+    var keys = allMonthKeysSorted(entries);
+    if (!keys.length) return '';
+    var cards = keys.map(function(mk){
+      var monthEntries = entries.filter(function(en){ return monthKeyFromFecha(en.fecha) === mk; });
+      var counts = codeCounts(monthEntries);
+      if (!Object.keys(counts).length) return '';
+      return '<div class="summary-month-card">' +
+        '<p class="summary-month-title">' + escapeHtml(monthLabel(mk)) + '</p>' +
+        buildPieSvg(counts, 84) + buildPieLegend(counts) +
+      '</div>';
+    }).join('');
+    if (!cards) return '';
     return '<div class="summary-card">' +
-      '<p class="summary-title">Asistencia de la congregación · ' + escapeHtml(monthLabel(mk)) + '</p>' +
-      '<div class="summary-body">' + buildPieSvg(counts, 120) + buildPieLegend(counts) + '</div>' +
+      '<p class="summary-title">Asistencia de la congregación</p>' +
+      '<div class="summary-scroll">' + cards + '</div>' +
     '</div>';
   }
 
