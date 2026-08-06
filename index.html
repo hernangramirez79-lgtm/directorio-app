@@ -130,6 +130,10 @@
   .grupo-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13px;}
   .grupo-label{color:var(--navy-2);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;flex:none;}
   .grupo-value{color:var(--ink);text-align:right;}
+  .grupo-link{
+    background:none;border:none;padding:0;font-family:inherit;font-size:13px;font-weight:600;
+    color:var(--navy-2);text-decoration:underline;text-underline-offset:2px;cursor:pointer;text-align:right;
+  }
   .badge{
     display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:700;
   }
@@ -436,6 +440,7 @@
     query: '',
     history: [],
     siervoFilter: '',
+    grupoFilter: '',
     selectedPersonId: null
   };
 
@@ -891,6 +896,44 @@
       return;
     }
 
+    if (state.grupoFilter){
+      if (state.selectedPersonId){
+        var personG = state.data.filter(function(p){ return String(p.id) === String(state.selectedPersonId); })[0];
+        if (!personG){
+          state.selectedPersonId = null;
+        } else {
+          countLine.textContent = '';
+          container.innerHTML = '<button type="button" class="back-link" id="backToListBtn">&#8249; Volver a la lista</button>' + cardHtml(personG);
+          return;
+        }
+      }
+
+      var qg = normalize(state.query);
+      var familia = state.data.filter(function(p){
+        if (p.grupoFamiliar !== state.grupoFilter) return false;
+        if (!qg) return true;
+        return normalize(p.nombreApellido).indexOf(qg) !== -1 ||
+               normalize(p.apellido).indexOf(qg) !== -1 ||
+               normalize(p.nombre).indexOf(qg) !== -1;
+      }).sort(function(a, b){ return a.nombreApellido.localeCompare(b.nombreApellido); });
+
+      countLine.textContent = familia.length + (familia.length === 1 ? ' persona' : ' personas') + ' · ' + state.grupoFilter;
+
+      var listHtml = '<button type="button" class="back-link" id="exitGrupoFilterBtn">&#8249; Volver al inicio</button>';
+      if (!familia.length){
+        container.innerHTML = listHtml + '<div class="empty"><b>Sin resultados</b>No hay personas de este grupo con ese nombre.</div>';
+        return;
+      }
+      container.innerHTML = listHtml + '<div class="compact-list">' + familia.map(function(p){
+        var sub = [p.localidad, p.edad ? (p.edad + ' años') : ''].filter(Boolean).join(' · ');
+        return '<button type="button" class="compact-item" data-id="' + p.id + '">' +
+          '<span class="compact-item-name">' + escapeHtml(p.nombreApellido) + '</span>' +
+          (sub ? '<span class="compact-item-sub">' + escapeHtml(sub) + '</span>' : '') +
+        '</button>';
+      }).join('') + '</div>';
+      return;
+    }
+
     if (state.siervoFilter){
       if (state.selectedPersonId){
         var person = state.data.filter(function(p){ return String(p.id) === String(state.selectedPersonId); })[0];
@@ -968,11 +1011,33 @@
 
   document.getElementById('siervoFilterSelect').addEventListener('change', function(){
     state.siervoFilter = this.value;
+    state.grupoFilter = '';
     state.selectedPersonId = null;
     renderResults();
   });
 
   document.getElementById('results').addEventListener('click', function(e){
+    var grupoLink = e.target.closest('.grupo-link');
+    if (grupoLink){
+      var grupoVal = grupoLink.getAttribute('data-grupo');
+      if (grupoVal){
+        state.grupoFilter = grupoVal;
+        state.siervoFilter = '';
+        document.getElementById('siervoFilterSelect').value = '';
+        state.selectedPersonId = null;
+        state.query = '';
+        document.getElementById('searchInput').value = '';
+        renderResults();
+      }
+      return;
+    }
+    var exitGrupoBtn = e.target.closest('#exitGrupoFilterBtn');
+    if (exitGrupoBtn){
+      state.grupoFilter = '';
+      state.selectedPersonId = null;
+      renderResults();
+      return;
+    }
     var backBtn = e.target.closest('#backToListBtn');
     if (backBtn){
       state.selectedPersonId = null;
@@ -1004,7 +1069,7 @@
     var sub = [p.localidad, p.edad ? (p.edad + ' años') : ''].filter(Boolean).join(' · ');
     var grupoBlock = p.grupoFamiliar ? (
       '<div class="grupo-block">' +
-        '<div class="grupo-row"><span class="grupo-label">Grupo Familiar</span><span class="grupo-value">' + escapeHtml(p.grupoFamiliar) + '</span></div>' +
+        '<div class="grupo-row"><span class="grupo-label">Grupo Familiar</span><button type="button" class="grupo-value grupo-link" data-grupo="' + escapeHtml(p.grupoFamiliar) + '">' + escapeHtml(p.grupoFamiliar) + '</button></div>' +
         (p.estadoAsistencia ? '<div class="grupo-row"><span class="grupo-label">Estado</span><span class="badge ' + estadoBadgeClass(p.estadoAsistencia) + '">' + escapeHtml(p.estadoAsistencia) + '</span></div>' : '') +
         '<div class="grupo-row"><span class="grupo-label">Siervo Responsable</span><span class="grupo-value">' + escapeHtml(p.siervoResponsable || 'Sin asignar') + '</span></div>' +
       '</div>'
