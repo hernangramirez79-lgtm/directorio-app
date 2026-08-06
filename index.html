@@ -172,6 +172,9 @@
   .birthday-item.today .vh-date{color:#c98a1f;font-weight:800;}
   .birthday-item.today .vh-time{color:#c98a1f;font-weight:700;}
   .birthday-item.past{opacity:0.5;}
+  .birthday-item{align-items:flex-start !important;}
+  .birthday-detail{display:block;font-size:11px;font-weight:400;color:var(--ink-soft);margin-top:2px;}
+  .birthday-item.today .birthday-detail{color:#c98a1f;}
 
   .summary-card{
     background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
@@ -782,7 +785,7 @@
     if (!cards) return '';
     return '<div class="summary-card">' +
       '<div class="summary-header-row">' +
-        '<p class="summary-title">Asistencia de la congregación</p>' +
+        '<p class="summary-title">Asistencia de Almas</p>' +
         '<div class="summary-nav">' +
           '<button type="button" class="summary-nav-btn" data-scroll-dir="-1" aria-label="Mes anterior">&#8249;</button>' +
           '<button type="button" class="summary-nav-btn" data-scroll-dir="1" aria-label="Mes siguiente">&#8250;</button>' +
@@ -809,6 +812,8 @@
       if (!bd || bd.month !== currentMonth) return;
       people.push({
         nombre: p.nombreApellido,
+        estado: p.estadoAsistencia || '',
+        siervo: p.siervoResponsable || '',
         day: bd.day,
         age: now.getFullYear() - bd.year,
         isToday: bd.day === currentDay,
@@ -822,7 +827,11 @@
     var items = people.map(function(p){
       var dayStr = ('0' + p.day).slice(-2) + '/' + ('0' + currentMonth).slice(-2);
       var cls = 'birthday-item' + (p.isToday ? ' today' : '') + (p.isPast ? ' past' : '');
-      return '<li class="' + cls + '"><span class="vh-date">' + escapeHtml(p.nombre) + (p.isToday ? ' 🎉' : '') + '</span>' +
+      var detalle = [p.estado, p.siervo ? '(' + p.siervo + ')' : ''].filter(Boolean).join(' ');
+      return '<li class="' + cls + '">' +
+        '<span class="vh-date">' + escapeHtml(p.nombre) + (p.isToday ? ' 🎉' : '') +
+          (detalle ? '<br><span class="birthday-detail">' + escapeHtml(detalle) + '</span>' : '') +
+        '</span>' +
         '<span class="vh-time">' + dayStr + ' · ' + p.age + ' años</span></li>';
     }).join('');
     return '<div class="summary-card">' +
