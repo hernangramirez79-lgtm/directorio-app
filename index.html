@@ -303,12 +303,11 @@
     <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username">
     <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password">
     <input type="password" id="loginPassConfirm" placeholder="Confirmar contraseña" style="display:none;" autocomplete="new-password">
-    <input type="text" id="loginRecoveryWord" placeholder="Palabra de recuperación" style="display:none;" autocomplete="off">
+    <input type="text" id="loginRecoveryWord" placeholder="Palabra clave (la que te dieron)" style="display:none;" autocomplete="off">
     <div id="lockError"></div>
     <button type="submit" class="btn btn-primary" id="loginSubmitBtn">Ingresar</button>
   </form>
   <p class="lock-toggle" id="lockToggleWrap" style="display:none;"></p>
-  <a href="#" class="lock-skip" id="lockSkipLink">Omitir por ahora</a>
   <a href="#" class="lock-skip" id="lockForgotLink">¿Olvidaste tu contraseña?</a>
 
   <form class="login-form" id="recoveryForm" autocomplete="off" style="display:none;">
@@ -394,16 +393,13 @@
         <input type="text" id="newUserName" placeholder="Usuario" autocomplete="off" style="margin-bottom:8px;">
         <input type="password" id="newUserPass" placeholder="Contraseña" autocomplete="new-password" style="margin-bottom:8px;">
         <input type="password" id="newUserPassConfirm" placeholder="Confirmar contraseña" autocomplete="new-password" style="margin-bottom:8px;">
-        <input type="text" id="newUserRecoveryWord" placeholder="Palabra de recuperación (la misma para todos)" autocomplete="off" style="margin-bottom:8px;">
+        <input type="text" id="newUserRecoveryWord" placeholder="Palabra clave (la que te dieron)" autocomplete="off" style="margin-bottom:8px;">
         <div id="addUserError" style="color:var(--danger);font-size:12.5px;min-height:16px;"></div>
         <div class="btn-row">
           <button class="btn btn-primary" id="confirmAddUserBtn">Crear</button>
           <button class="btn btn-outline" id="cancelAddUserBtn">Cancelar</button>
         </div>
       </div>
-
-      <button class="btn btn-danger" id="resetUsersBtn" style="margin-top:10px;">Quitar control de acceso</button>
-      <p class="help-text">Esto borra los usuarios guardados en este celular y deja la app abierta sin pedir sesión.</p>
     </div>
 
     <div class="divider"></div>
@@ -1555,7 +1551,6 @@
     var loginFormEl = document.getElementById('loginForm');
     var confirmField = document.getElementById('loginPassConfirm');
     var recoveryWordField = document.getElementById('loginRecoveryWord');
-    var skipLink = document.getElementById('lockSkipLink');
     var forgotLink = document.getElementById('lockForgotLink');
     var submitBtn = document.getElementById('loginSubmitBtn');
 
@@ -1566,15 +1561,13 @@
       sub.textContent = 'Ingresá tu usuario y contraseña';
       confirmField.style.display = 'none';
       recoveryWordField.style.display = 'none';
-      skipLink.style.display = 'none';
       forgotLink.style.display = 'inline-block';
       submitBtn.textContent = 'Ingresar';
     } else {
       title.textContent = 'Crear tu usuario';
-      sub.textContent = 'Elegí un usuario, contraseña y palabra de recuperación para este celular';
+      sub.textContent = 'Elegí un usuario y contraseña, y escribí la palabra clave que te dieron';
       confirmField.style.display = 'block';
       recoveryWordField.style.display = 'block';
-      skipLink.style.display = 'inline-block';
       forgotLink.style.display = 'none';
       submitBtn.textContent = 'Crear usuario';
     }
@@ -1587,37 +1580,48 @@
   }
 
   // Devuelve {ok:true} o {ok:false, error:'...'} y, si sale bien, guarda el usuario.
-  function attemptRegister(username, password, confirmPassword, recoveryWord){
+  // Ahora asíncrona: valida la palabra clave contra la que vos cargaste en el Sheet,
+  // en vez de guardar lo que la persona escriba.
+  function attemptRegister(username, password, confirmPassword, claveIngresada, callback){
     var key = usernameKey(username);
     if (!key || password.length < 4){
-      return { ok:false, error:'Completá un usuario y una contraseña de al menos 4 caracteres' };
+      callback({ ok:false, error:'Completá un usuario y una contraseña de al menos 4 caracteres' });
+      return;
     }
     if (password !== confirmPassword){
-      return { ok:false, error:'Las contraseñas no coinciden' };
+      callback({ ok:false, error:'Las contraseñas no coinciden' });
+      return;
     }
-    if (!recoveryWord || !recoveryWord.trim()){
-      return { ok:false, error:'Completá una palabra de recuperación' };
+    if (!claveIngresada || !claveIngresada.trim()){
+      callback({ ok:false, error:'Completá la palabra clave' });
+      return;
     }
     var users = getUsers();
     if (users[key]){
-      return { ok:false, error:'Ese usuario ya existe en este celular' };
+      callback({ ok:false, error:'Ese usuario ya existe en este celular' });
+      return;
     }
-    users[key] = { username: username.trim(), hash: hashCred(key, password) };
-    saveUsers(users);
-    localStorage.setItem(LS_LOGIN_ONBOARDED, '1');
-    sendRecoveryWord(recoveryWord.trim());
-    return { ok:true, username: username.trim() };
-  }
-
-  // Envía la palabra de recuperación al Apps Script (mejor esfuerzo, no bloquea el registro si falla).
-  function sendRecoveryWord(word){
     var scriptUrl = localStorage.getItem(LS_SCRIPT_URL);
-    if (!scriptUrl) return;
+    if (!scriptUrl){
+      callback({ ok:false, error:'Este celular no tiene el link del Apps Script configurado, no se puede verificar la palabra clave' });
+      return;
+    }
     fetch(scriptUrl, {
       method: 'POST',
       headers: {'Content-Type': 'text/plain;charset=utf-8'},
-      body: JSON.stringify({ action: 'setRecoveryWord', word: word })
-    }).catch(function(){});
+      body: JSON.stringify({ action: 'checkRecoveryWord', word: claveIngresada.trim() })
+    }).then(function(r){ return r.json(); }).then(function(res){
+      if (!res || !res.ok){
+        callback({ ok:false, error:'Palabra clave incorrecta' });
+        return;
+      }
+      users[key] = { username: username.trim(), hash: hashCred(key, password) };
+      saveUsers(users);
+      localStorage.setItem(LS_LOGIN_ONBOARDED, '1');
+      callback({ ok:true, username: username.trim() });
+    }).catch(function(){
+      callback({ ok:false, error:'No se pudo verificar (revisá tu conexión)' });
+    });
   }
 
   document.getElementById('loginForm').addEventListener('submit', function(e){
@@ -1638,27 +1642,21 @@
     } else {
       var confirmPassword = document.getElementById('loginPassConfirm').value;
       var recoveryWord = document.getElementById('loginRecoveryWord').value;
-      var res = attemptRegister(username, password, confirmPassword, recoveryWord);
-      if (!res.ok){ errorEl.textContent = res.error; return; }
-      currentUser = res.username;
-      toast('Usuario creado');
-      hideLock();
-      refreshUsersUI();
+      errorEl.textContent = 'Verificando…';
+      attemptRegister(username, password, confirmPassword, recoveryWord, function(res){
+        if (!res.ok){ errorEl.textContent = res.error; return; }
+        currentUser = res.username;
+        toast('Usuario creado');
+        hideLock();
+        refreshUsersUI();
+      });
     }
-  });
-
-  document.getElementById('lockSkipLink').addEventListener('click', function(e){
-    e.preventDefault();
-    if (lockMode !== 'register') return;
-    localStorage.setItem(LS_LOGIN_ONBOARDED, '1');
-    hideLock();
   });
 
   // ---------- Recuperación de acceso (palabra de recuperación validada contra el Sheet) ----------
   document.getElementById('lockForgotLink').addEventListener('click', function(e){
     e.preventDefault();
     document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('lockSkipLink').style.display = 'none';
     document.getElementById('lockForgotLink').style.display = 'none';
     document.getElementById('recoveryForm').style.display = 'flex';
     document.getElementById('recoveryCancelLink').style.display = 'inline-block';
@@ -1756,32 +1754,27 @@
     document.getElementById('addUserForm').style.display = 'none';
   });
   document.getElementById('confirmAddUserBtn').addEventListener('click', function(){
-    var res = attemptRegister(
+    document.getElementById('addUserError').textContent = 'Verificando…';
+    attemptRegister(
       document.getElementById('newUserName').value,
       document.getElementById('newUserPass').value,
       document.getElementById('newUserPassConfirm').value,
-      document.getElementById('newUserRecoveryWord').value
+      document.getElementById('newUserRecoveryWord').value,
+      function(res){
+        if (!res.ok){
+          document.getElementById('addUserError').textContent = res.error;
+          return;
+        }
+        document.getElementById('addUserForm').style.display = 'none';
+        toast('Usuario creado');
+        refreshUsersUI();
+      }
     );
-    if (!res.ok){
-      document.getElementById('addUserError').textContent = res.error;
-      return;
-    }
-    document.getElementById('addUserForm').style.display = 'none';
-    toast('Usuario creado');
-    refreshUsersUI();
   });
   document.getElementById('logoutBtn').addEventListener('click', function(){
     currentUser = null;
     closeSettings();
     showLock('login');
-  });
-  document.getElementById('resetUsersBtn').addEventListener('click', function(){
-    if (!window.confirm('¿Seguro que querés quitar todos los usuarios de este celular? La app va a quedar sin pedir sesión.')) return;
-    localStorage.removeItem(LS_USERS);
-    localStorage.setItem(LS_LOGIN_ONBOARDED, '1');
-    currentUser = null;
-    toast('Control de acceso desactivado en este celular');
-    refreshUsersUI();
   });
 
   // ---------- Search ----------
