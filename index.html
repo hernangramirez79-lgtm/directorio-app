@@ -235,7 +235,7 @@
   .pie-legend{display:flex;flex-direction:column;gap:5px;flex:1;min-width:120px;}
   .pie-legend-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink);}
   .pie-legend-item b{margin-left:auto;color:var(--ink-soft);font-weight:700;}
-  .pie-dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .pie-icon{font-size:14px;line-height:1;flex:none;}
 
   /* ---------- Overlay / Settings & PIN ---------- */
   .overlay{
@@ -619,6 +619,10 @@
     'P': 'Presente', 'T': 'Trabajo', 'EN': 'Enfermo', 'ES': 'Estudio',
     'PM': 'Permiso', 'R': 'Rueda', 'O': 'Otra Capilla', 'V': 'Vacaciones', 'A': 'Ausente', '?': 'Incierto'
   };
+  var ASISTENCIA_ICONS = {
+    'P': '✅', 'T': '💼', 'EN': '🤒', 'ES': '📚',
+    'PM': '🙋', 'R': '🔄', 'O': '⛪', 'V': '🏖️', 'A': '❌', '?': '❓'
+  };
 
   var ASISTENCIA_HEADER_MAP = {
     'apellido': 'apellido',
@@ -730,7 +734,7 @@
 
   function buildPieLegend(counts){
     var items = CODE_ORDER.filter(function(c){ return counts[c]; }).map(function(c){
-      return '<div class="pie-legend-item"><span class="pie-dot" style="background:' + (CODE_COLORS[c] || '#9aa0a6') + '"></span>' +
+      return '<div class="pie-legend-item"><span class="pie-icon">' + (ASISTENCIA_ICONS[c] || '⚪') + '</span>' +
         escapeHtml(ASISTENCIA_CODES[c] || c) + '<b>' + counts[c] + '</b></div>';
     });
     return '<div class="pie-legend">' + items.join('') + '</div>';
@@ -875,7 +879,7 @@
       });
       var codeSections = CODE_ORDER.filter(function(c){ return byCode[c] && byCode[c].length; }).map(function(c){
         var names = byCode[c].slice().sort();
-        return '<p class="month-detail-heading"><span class="pie-dot" style="background:' + (CODE_COLORS[c] || '#9aa0a6') + '"></span>' +
+        return '<p class="month-detail-heading"><span class="pie-icon">' + (ASISTENCIA_ICONS[c] || '⚪') + '</span>' +
             escapeHtml(ASISTENCIA_CODES[c] || c) + ' <b>(' + names.length + ')</b></p>' +
           '<p class="date-accordion-names">' + names.map(escapeHtml).join(' · ') + '</p>';
       }).join('');
