@@ -121,6 +121,7 @@
   }
   .field .value{flex:1;color:var(--ink);word-break:break-word;}
   .field .value a{color:var(--navy-2);text-decoration:none;font-weight:600;}
+  .wa-link{margin-left:6px;font-size:15px;text-decoration:none;}
   .field.empty-field .value{color:#b7bec9;font-style:italic;}
 
   .grupo-block{
@@ -1086,6 +1087,15 @@
     }
   });
 
+  function whatsappLink(celular){
+    if (!celular) return '';
+    var digits = celular.toString().replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.charAt(0) === '0') digits = digits.substring(1);
+    if (digits.substring(0, 2) !== '54') digits = '54' + digits;
+    return 'https://wa.me/' + digits;
+  }
+
   function fieldHtml(label, value, opts){
     opts = opts || {};
     var empty = !value;
@@ -1099,6 +1109,10 @@
     if (!empty && opts.maps){
       var mapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(value);
       display = '<a href="' + mapsUrl + '" target="_blank" rel="noopener">📍 ' + display + '</a>';
+    }
+    if (!empty && opts.whatsapp){
+      var wa = whatsappLink(value);
+      if (wa) display += ' <a href="' + wa + '" target="_blank" rel="noopener" class="wa-link" aria-label="Escribir por WhatsApp">💬</a>';
     }
     return '<div class="field' + (empty ? ' empty-field' : '') + '"><div class="label">' + label + '</div><div class="value">' + display + '</div></div>';
   }
@@ -1133,7 +1147,7 @@
       '<div class="field-grid">' +
         fieldHtml('Nacimiento', p.fechaNacimiento) +
         fieldHtml('Tel. fijo', p.telefonoFijo, {tel:true}) +
-        fieldHtml('Celular', p.celular, {tel:true}) +
+        fieldHtml('Celular', p.celular, {tel:true, whatsapp:true}) +
         fieldHtml('Email', p.email, {mail:true}) +
         fieldHtml('Dirección', p.direccion, {maps:true}) +
       '</div>' +
