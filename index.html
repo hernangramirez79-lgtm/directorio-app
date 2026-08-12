@@ -1096,6 +1096,10 @@
     if (!empty && opts.mail){
       display = '<a href="mailto:' + escapeHtml(value) + '">' + display + '</a>';
     }
+    if (!empty && opts.maps){
+      var mapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(value);
+      display = '<a href="' + mapsUrl + '" target="_blank" rel="noopener">📍 ' + display + '</a>';
+    }
     return '<div class="field' + (empty ? ' empty-field' : '') + '"><div class="label">' + label + '</div><div class="value">' + display + '</div></div>';
   }
 
@@ -1131,7 +1135,7 @@
         fieldHtml('Tel. fijo', p.telefonoFijo, {tel:true}) +
         fieldHtml('Celular', p.celular, {tel:true}) +
         fieldHtml('Email', p.email, {mail:true}) +
-        fieldHtml('Dirección', p.direccion) +
+        fieldHtml('Dirección', p.direccion, {maps:true}) +
       '</div>' +
     '</div>';
   }
