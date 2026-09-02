@@ -323,6 +323,7 @@
   </form>
   <p class="lock-toggle" id="lockToggleWrap" style="display:none;"></p>
   <a href="#" class="lock-skip" id="lockForgotLink">¿Olvidaste tu contraseña?</a>
+  <a href="#" class="lock-skip" id="lockSettingsLink">⚙️ Configuración</a>
 
   <form class="login-form" id="recoveryForm" autocomplete="off" style="display:none;">
     <input type="text" id="recoveryWordInput" placeholder="Palabra de recuperación" autocomplete="off">
@@ -1779,11 +1780,23 @@
     refreshUsersUI();
     overlay.classList.add('show');
   }
-  function closeSettings(){ overlay.classList.remove('show'); }
+  function closeSettings(){
+    overlay.classList.remove('show');
+    if (!currentUser){
+      var users = getUsers();
+      showLock(Object.keys(users).length > 0 ? 'login' : 'register');
+    }
+  }
 
   document.getElementById('settingsBtn').addEventListener('click', openSettings);
   document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
   overlay.addEventListener('click', function(e){ if (e.target === overlay) closeSettings(); });
+
+  document.getElementById('lockSettingsLink').addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('lockScreen').classList.add('hidden');
+    openSettings();
+  });
 
   document.getElementById('scriptUrlInput').addEventListener('change', function(){
     localStorage.setItem(LS_SCRIPT_URL, this.value.trim());
