@@ -195,6 +195,23 @@
   }
   .summary-nav-btn:active{background:var(--paper);}
   .summary-body{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .attendance-block{
+    background:#fafbfc;border:1px solid var(--line);border-radius:10px;
+    padding:12px;margin:0 0 10px;
+  }
+  .attendance-block-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .attendance-block-title{font-size:12px;font-weight:700;color:var(--navy-2);text-transform:uppercase;letter-spacing:.3px;}
+  .year-toggle-link{
+    background:none;border:none;color:var(--navy-2);font-size:11.5px;font-weight:600;
+    text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-family:inherit;flex:none;
+  }
+  .attendance-block-body{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .attendance-mini-counts{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink);}
+  .attendance-mini-counts b{color:var(--ink-soft);}
+  .attendance-detail-link{
+    margin-left:auto;background:none;border:none;color:var(--navy-2);font-size:12px;font-weight:600;
+    text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-family:inherit;align-self:flex-end;
+  }
   .summary-scroll{
     display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch;
     scrollbar-width:thin;scrollbar-color:var(--gold) transparent;cursor:grab;
@@ -814,22 +831,57 @@
     '</div>';
   }
 
+  function computeYearCounts(entries, yy){
+    var filtered = entries.filter(function(en){
+      var parts = (en.fecha || '').split('/');
+      return parts[2] === yy;
+    });
+    return codeCounts(filtered);
+  }
+
+  // ownerId: 'home' para la pantalla de inicio, o el id de una persona.
+  function attendanceBlockHtml(ownerId, entries, shownYY, thisYY, prevYY){
+    var counts = computeYearCounts(entries, shownYY);
+    var fullYear = 2000 + parseInt(shownYY, 10);
+    var otherYY = (shownYY === thisYY) ? prevYY : thisYY;
+    var otherLabel = 2000 + parseInt(otherYY, 10);
+    var hasCounts = Object.keys(counts).length > 0;
+
+    var body;
+    if (hasCounts){
+      var miniCounts = CODE_ORDER.filter(function(c){ return counts[c]; }).map(function(c){
+        return '<span>' + (ASISTENCIA_ICONS[c] || '') + ' ' + (ASISTENCIA_CODES[c] || c) + ' <b>' + counts[c] + '</b></span>';
+      }).join('');
+      var detailLink = ownerId !== 'home'
+        ? '<button type="button" class="attendance-detail-link" data-person-id="' + ownerId + '">Ver detalle</button>'
+        : '';
+      body = '<div class="attendance-block-body">' +
+        buildPieSvg(counts, ownerId === 'home' ? 84 : 56) +
+        '<div class="attendance-mini-counts">' + miniCounts + '</div>' +
+        detailLink +
+      '</div>';
+    } else {
+      body = '<p class="vae-history-empty">Sin registros de asistencia todavía en ' + fullYear + '.</p>';
+    }
+
+    return '<div class="attendance-block" data-owner="' + ownerId + '" data-shown-year="' + shownYY + '" data-this-year="' + thisYY + '" data-prev-year="' + prevYY + '">' +
+      '<div class="attendance-block-header">' +
+        '<span class="attendance-block-title">Asistencia · ' + fullYear + '</span>' +
+        '<button type="button" class="year-toggle-link" data-target-year="' + otherYY + '">Ver ' + otherLabel + '</button>' +
+      '</div>' +
+      body +
+    '</div>';
+  }
+
   function renderYearSummary(){
     var entries = [];
     state.data.forEach(function(p){
       parseAsistenciaHistorial(p.asistenciaHistorial).forEach(function(en){ entries.push(en); });
     });
-    var currentYY = new Date().getFullYear().toString().slice(-2);
-    var yearEntries = entries.filter(function(en){
-      var parts = (en.fecha || '').split('/');
-      return parts[2] === currentYY;
-    });
-    var counts = codeCounts(yearEntries);
-    if (!Object.keys(counts).length) return '';
-    return '<div class="summary-card">' +
-      '<p class="summary-title">Acumulado ' + (2000 + parseInt(currentYY, 10)) + '</p>' +
-      '<div class="summary-body">' + buildPieSvg(counts, 120) + buildPieLegend(counts) + '</div>' +
-    '</div>';
+    if (!entries.length) return '';
+    var thisYY = new Date().getFullYear().toString().slice(-2);
+    var prevYY = (parseInt(thisYY, 10) - 1).toString().padStart(2, '0');
+    return '<div class="summary-card">' + attendanceBlockHtml('home', entries, thisYY, thisYY, prevYY) + '</div>';
   }
 
   // ---------- Cumpleaños del mes ----------
@@ -1144,10 +1196,20 @@
         '<div class="grupo-row"><span class="grupo-label">Siervo Responsable</span><span class="grupo-value">' + escapeHtml(p.siervoResponsable || 'Sin asignar') + '</span></div>' +
       '</div>'
     ) : '';
+    var attendanceBlock = '';
+    if (p.asistenciaHistorial){
+      var personEntries = parseAsistenciaHistorial(p.asistenciaHistorial);
+      if (personEntries.length){
+        var thisYY_ = new Date().getFullYear().toString().slice(-2);
+        var prevYY_ = (parseInt(thisYY_, 10) - 1).toString().padStart(2, '0');
+        attendanceBlock = attendanceBlockHtml(String(p.id), personEntries, thisYY_, thisYY_, prevYY_);
+      }
+    }
     return '<div class="card">' +
       '<p class="card-name">' + escapeHtml(p.nombreApellido) + '</p>' +
       (sub ? '<p class="card-sub">' + escapeHtml(sub) + '</p>' : '') +
       grupoBlock +
+      attendanceBlock +
       '<div class="vae-block' + (isVaeOverdue(p.vae) ? ' overdue' : '') + '">' +
         '<span class="vae-label">VAE</span>' +
         '<div class="vae-input-wrap">' +
@@ -1215,6 +1277,36 @@
   }, { passive: false });
 
   document.getElementById('results').addEventListener('click', function(e){
+    var yearToggle = e.target.closest('.year-toggle-link');
+    if (yearToggle){
+      var yBlock = yearToggle.closest('.attendance-block');
+      var owner = yBlock.getAttribute('data-owner');
+      var targetYY = yearToggle.getAttribute('data-target-year');
+      var thisYYAttr = yBlock.getAttribute('data-this-year');
+      var prevYYAttr = yBlock.getAttribute('data-prev-year');
+      var yEntries;
+      if (owner === 'home'){
+        yEntries = [];
+        state.data.forEach(function(p){
+          parseAsistenciaHistorial(p.asistenciaHistorial).forEach(function(en){ yEntries.push(en); });
+        });
+      } else {
+        var yPerson = state.data.filter(function(p){ return String(p.id) === String(owner); })[0];
+        yEntries = yPerson ? parseAsistenciaHistorial(yPerson.asistenciaHistorial) : [];
+      }
+      yBlock.outerHTML = attendanceBlockHtml(owner, yEntries, targetYY, thisYYAttr, prevYYAttr);
+      return;
+    }
+    var detailLink = e.target.closest('.attendance-detail-link');
+    if (detailLink){
+      var dPid = detailLink.getAttribute('data-person-id');
+      var dToggle = document.querySelector('.asistencia-toggle[data-id="' + dPid + '"]');
+      if (dToggle){
+        dToggle.click();
+        dToggle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
     var navBtn = e.target.closest('.summary-nav-btn');
     if (navBtn){
       var card = navBtn.closest('.summary-card');
