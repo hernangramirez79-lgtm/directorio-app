@@ -212,6 +212,16 @@
     margin-left:auto;background:none;border:none;color:var(--navy-2);font-size:12px;font-weight:600;
     text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-family:inherit;align-self:flex-end;
   }
+  .tracking-header-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+  .tracking-header-row h2{margin:0;}
+  .tracking-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+  .tracking-chip{
+    padding:7px 12px;border-radius:20px;background:var(--paper);color:var(--ink-soft);
+    font-size:12.5px;font-weight:600;border:1.5px solid transparent;cursor:pointer;font-family:inherit;
+  }
+  .tracking-chip.active{background:#fdecea;color:var(--danger);border-color:var(--danger);}
+  #trackingBody .compact-item{cursor:default;}
+  #trackingBody .compact-item:active{background:none;}
   .summary-scroll{
     display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch;
     scrollbar-width:thin;scrollbar-color:var(--gold) transparent;cursor:grab;
@@ -446,6 +456,21 @@
     <div id="monthDetailBody"></div>
     <div class="divider"></div>
     <button class="btn btn-outline" id="closeMonthDetailBtn">Cerrar</button>
+  </div>
+</div>
+
+<div class="overlay" id="trackingOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="tracking-header-row">
+      <h2>Seguimiento por estado</h2>
+      <button type="button" class="year-toggle-link" id="trackingYearToggle"></button>
+    </div>
+    <div class="tracking-chips" id="trackingChips"></div>
+    <p class="count-line" id="trackingCountLine"></p>
+    <div id="trackingBody"></div>
+    <div class="divider"></div>
+    <button class="btn btn-outline" id="closeTrackingBtn">Cerrar</button>
   </div>
 </div>
 
@@ -881,7 +906,8 @@
     if (!entries.length) return '';
     var thisYY = new Date().getFullYear().toString().slice(-2);
     var prevYY = (parseInt(thisYY, 10) - 1).toString().padStart(2, '0');
-    return '<div class="summary-card">' + attendanceBlockHtml('home', entries, thisYY, thisYY, prevYY) + '</div>';
+    return '<div class="summary-card">' + attendanceBlockHtml('home', entries, thisYY, thisYY, prevYY) + '</div>' +
+      '<button type="button" class="btn btn-outline" id="openTrackingBtn" style="margin-bottom:14px;">🔍 Seguimiento por estado</button>';
   }
 
   // ---------- Cumpleaños del mes ----------
@@ -988,6 +1014,90 @@
     var isOpen = body.style.display !== 'none';
     body.style.display = isOpen ? 'none' : 'block';
     header.classList.toggle('open', !isOpen);
+  });
+
+  // ---------- Seguimiento por estado (todos, excepto Presente) ----------
+  var trackingCode = null;
+  var trackingYY = new Date().getFullYear().toString().slice(-2);
+  var TRACKING_CODES = CODE_ORDER.filter(function(c){ return c !== 'P'; });
+
+  function computeTrackingList(code, yy){
+    var byPerson = {};
+    state.data.forEach(function(p){
+      parseAsistenciaHistorial(p.asistenciaHistorial).forEach(function(en){
+        var parts = (en.fecha || '').split('/');
+        if (parts[2] !== yy) return;
+        if ((en.codigo || '').toUpperCase() !== code) return;
+        byPerson[p.nombreApellido] = byPerson[p.nombreApellido] || { count: 0, last: null };
+        byPerson[p.nombreApellido].count++;
+        var d = parseHistDate_(en.fecha);
+        if (!byPerson[p.nombreApellido].last || d > byPerson[p.nombreApellido].lastMs){
+          byPerson[p.nombreApellido].last = en.fecha;
+          byPerson[p.nombreApellido].lastMs = d;
+        }
+      });
+    });
+    return Object.keys(byPerson).map(function(nombre){
+      return { nombre: nombre, count: byPerson[nombre].count, last: byPerson[nombre].last, lastMs: byPerson[nombre].lastMs };
+    }).sort(function(a, b){ return b.lastMs - a.lastMs; });
+  }
+
+  function renderTrackingChips(){
+    return TRACKING_CODES.map(function(c){
+      var active = c === trackingCode;
+      return '<button type="button" class="tracking-chip' + (active ? ' active' : '') + '" data-code="' + c + '">' +
+        (ASISTENCIA_ICONS[c] || '') + ' ' + (ASISTENCIA_CODES[c] || c) +
+      '</button>';
+    }).join('');
+  }
+
+  function renderTrackingBody(){
+    document.getElementById('trackingYearToggle').textContent = 'Ver ' + (2000 + parseInt(trackingYY, 10) - (trackingYY === new Date().getFullYear().toString().slice(-2) ? 1 : -1));
+    document.getElementById('trackingChips').innerHTML = renderTrackingChips();
+    var list = computeTrackingList(trackingCode, trackingYY);
+    document.getElementById('trackingCountLine').textContent = list.length + (list.length === 1 ? ' persona · ' : ' personas · ') + (2000 + parseInt(trackingYY, 10));
+    var body = document.getElementById('trackingBody');
+    if (!list.length){
+      body.innerHTML = '<p class="vae-history-empty">Nadie registrado en esta categoría en ' + (2000 + parseInt(trackingYY, 10)) + '.</p>';
+      return;
+    }
+    body.innerHTML = '<div class="compact-list">' + list.map(function(it){
+      return '<div class="compact-item" style="cursor:default;">' +
+        '<span class="compact-item-name">' + escapeHtml(it.nombre) + '</span>' +
+        '<span class="compact-item-sub">' + (it.count === 1 ? '1 vez' : it.count + ' veces') + ' · última: ' + escapeHtml(it.last) + '</span>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+
+  function openTracking(){
+    var thisYY = new Date().getFullYear().toString().slice(-2);
+    trackingYY = thisYY;
+    if (!trackingCode) trackingCode = TRACKING_CODES[0];
+    renderTrackingBody();
+    document.getElementById('trackingOverlay').classList.add('show');
+  }
+  function closeTracking(){
+    document.getElementById('trackingOverlay').classList.remove('show');
+  }
+  document.getElementById('closeTrackingBtn').addEventListener('click', closeTracking);
+  document.getElementById('trackingOverlay').addEventListener('click', function(e){
+    if (e.target === this) closeTracking();
+  });
+  document.getElementById('trackingChips').addEventListener('click', function(e){
+    var chip = e.target.closest('.tracking-chip');
+    if (!chip) return;
+    trackingCode = chip.getAttribute('data-code');
+    renderTrackingBody();
+  });
+  document.getElementById('trackingYearToggle').addEventListener('click', function(){
+    var thisYY = new Date().getFullYear().toString().slice(-2);
+    trackingYY = (trackingYY === thisYY) ? (parseInt(thisYY, 10) - 1).toString().padStart(2, '0') : thisYY;
+    renderTrackingBody();
+  });
+
+  document.getElementById('results').addEventListener('click', function(e){
+    var openBtn = e.target.closest('#openTrackingBtn');
+    if (openBtn){ openTracking(); }
   });
 
   // ---------- Rendering ----------
