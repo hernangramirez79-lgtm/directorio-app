@@ -251,6 +251,20 @@
     font-size:12px;font-weight:600;border:1.5px solid transparent;cursor:pointer;font-family:inherit;
   }
   .entry-chip.active{background:#e2f3e8;color:var(--ok);border-color:var(--ok);}
+  .entry-date-options{display:flex;flex-direction:column;gap:8px;}
+  .entry-date-btn{
+    text-align:left;padding:12px 14px;border-radius:10px;border:1px solid var(--line);
+    background:#fafbfc;font-size:13.5px;color:var(--ink);cursor:pointer;font-family:inherit;font-weight:500;
+  }
+  .entry-date-btn.active{border:2px solid var(--navy-2);background:#eef3f8;font-weight:700;color:var(--navy-2);}
+  .active-date-banner{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);border-radius:14px;
+    padding:14px 16px;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
+  }
+  .active-date-banner .adb-label{font-size:11.5px;color:#c9d4e4;margin:0;}
+  .active-date-banner .adb-date{font-size:14.5px;font-weight:700;margin:2px 0 0;}
+  .active-date-banner .adb-count{font-size:24px;font-weight:800;color:var(--gold);margin:0;text-align:right;}
+  .active-date-banner .adb-sub{font-size:10.5px;color:#c9d4e4;margin:0;text-align:right;}
   .summary-scroll{
     display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch;
     scrollbar-width:thin;scrollbar-color:var(--gold) transparent;cursor:grab;
@@ -515,7 +529,10 @@
 
     <div class="field-block">
       <label>Fecha</label>
-      <input type="date" id="entryDateInput">
+      <div id="entryDateOptions" class="entry-date-options"></div>
+      <input type="date" id="entryCustomDateInput" style="display:none;margin-top:8px;">
+      <p id="entryCustomDayLabel" class="help-text" style="display:none;margin-top:4px;"></p>
+      <input type="text" id="entryCommentInput" placeholder="Motivo (opcional)" style="display:none;margin-top:8px;" autocomplete="off">
     </div>
 
     <div class="field-block">
@@ -977,6 +994,33 @@
     return { day: parseInt(m[1], 10), month: parseInt(m[2], 10), year: parseInt(m[3], 10) };
   }
 
+  function renderActiveDateTotal(){
+    var raw = localStorage.getItem(LS_ACTIVE_ENTRY_DATE);
+    if (!raw) return '';
+    var active;
+    try { active = JSON.parse(raw); } catch(e){ return ''; }
+    if (!active || !active.fecha) return '';
+
+    var count = 0;
+    state.data.forEach(function(p){
+      parseAsistenciaHistorial(p.asistenciaHistorial).forEach(function(en){
+        if (en.fecha === active.fecha) count++;
+      });
+    });
+
+    var sub = active.comentario ? active.label + ' · ' + active.comentario : active.label;
+    return '<div class="active-date-banner">' +
+      '<div>' +
+        '<p class="adb-label">Cargando asistencia de</p>' +
+        '<p class="adb-date">' + escapeHtml(sub) + ' ' + escapeHtml(active.fecha) + '</p>' +
+      '</div>' +
+      '<div>' +
+        '<p class="adb-count">' + count + '</p>' +
+        '<p class="adb-sub">almas cargadas</p>' +
+      '</div>' +
+    '</div>';
+  }
+
   function renderBirthdaysCard(){
     var now = new Date();
     var currentMonth = now.getMonth() + 1;
@@ -1163,21 +1207,96 @@
   // ---------- Cargar asistencia (Presente / Ausente / etc. desde la app) ----------
   var entryGroup = [];
   var entrySelectedCodes = {};
+  var entrySelectedDate = null; // { fecha: 'dd/mm/aa', label: 'Domingo', comentario: '' }
+  var DIAS_SEMANA_ = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var LS_ACTIVE_ENTRY_DATE = 'directorio_active_entry_date';
+
+  function formatDDMMYYYY_(d){
+    return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+  }
+  function toDDMMYY_(d){
+    return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear().toString().slice(-2);
+  }
+  function nextDateForWeekday_(targetDow){
+    var d = new Date();
+    var diff = (targetDow - d.getDay() + 7) % 7;
+    d.setDate(d.getDate() + diff);
+    return d;
+  }
+  function dateInputToDate_(val){
+    var parts = (val || '').split('-');
+    if (parts.length !== 3) return null;
+    return new Date(parseInt(parts[0],10), parseInt(parts[1],10) - 1, parseInt(parts[2],10));
+  }
+
+  function renderEntryDateOptions(){
+    var sunday = nextDateForWeekday_(0);
+    var wednesday = nextDateForWeekday_(3);
+    var box = document.getElementById('entryDateOptions');
+    box.innerHTML =
+      '<button type="button" class="entry-date-btn" data-kind="sunday">' + formatDDMMYYYY_(sunday) + ' · Domingo</button>' +
+      '<button type="button" class="entry-date-btn" data-kind="wednesday">' + formatDDMMYYYY_(wednesday) + ' · Miércoles</button>' +
+      '<button type="button" class="entry-date-btn" data-kind="other">Otra fecha</button>';
+    selectEntryDateKind('sunday', sunday);
+  }
+
+  function selectEntryDateKind(kind, dateObj){
+    document.querySelectorAll('.entry-date-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-kind') === kind);
+    });
+    var customInput = document.getElementById('entryCustomDateInput');
+    var dayLabel = document.getElementById('entryCustomDayLabel');
+    var commentInput = document.getElementById('entryCommentInput');
+
+    if (kind === 'other'){
+      customInput.style.display = 'block';
+      commentInput.style.display = 'block';
+      if (!customInput.value) customInput.value = todayForDateInput_();
+      var d = dateInputToDate_(customInput.value);
+      if (d){
+        dayLabel.textContent = '📅 Cae ' + DIAS_SEMANA_[d.getDay()].toLowerCase();
+        dayLabel.style.display = 'block';
+        entrySelectedDate = { fecha: toDDMMYY_(d), label: DIAS_SEMANA_[d.getDay()], comentario: commentInput.value.trim() };
+      }
+    } else {
+      customInput.style.display = 'none';
+      dayLabel.style.display = 'none';
+      commentInput.style.display = 'none';
+      var label = kind === 'sunday' ? 'Domingo' : 'Miércoles';
+      entrySelectedDate = { fecha: toDDMMYY_(dateObj), label: label, comentario: '' };
+    }
+    updateActiveEntryDate();
+  }
+
+  document.getElementById('entryDateOptions').addEventListener('click', function(e){
+    var btn = e.target.closest('.entry-date-btn');
+    if (!btn) return;
+    var kind = btn.getAttribute('data-kind');
+    if (kind === 'sunday') selectEntryDateKind('sunday', nextDateForWeekday_(0));
+    else if (kind === 'wednesday') selectEntryDateKind('wednesday', nextDateForWeekday_(3));
+    else selectEntryDateKind('other', null);
+  });
+
+  document.getElementById('entryCustomDateInput').addEventListener('change', function(){
+    selectEntryDateKind('other', null);
+  });
+  document.getElementById('entryCommentInput').addEventListener('input', function(){
+    if (entrySelectedDate) entrySelectedDate.comentario = this.value.trim();
+  });
+
+  function updateActiveEntryDate(){
+    if (!entrySelectedDate) return;
+    localStorage.setItem(LS_ACTIVE_ENTRY_DATE, JSON.stringify(entrySelectedDate));
+    renderResults();
+  }
 
   function todayForDateInput_(){
     var d = new Date();
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
 
-  function dateInputToDDMMYY_(val){
-    // val viene como yyyy-mm-dd del input type=date
-    var parts = (val || '').split('-');
-    if (parts.length !== 3) return '';
-    return parts[2] + '/' + parts[1] + '/' + parts[0].slice(-2);
-  }
-
   function openEntryOverlay(){
-    document.getElementById('entryDateInput').value = todayForDateInput_();
+    renderEntryDateOptions();
     document.getElementById('entrySearchInput').value = '';
     document.getElementById('entrySuggestions').style.display = 'none';
     document.getElementById('entryGroupWrap').innerHTML = '';
@@ -1281,8 +1400,9 @@
   });
 
   document.getElementById('saveEntryBtn').addEventListener('click', function(){
-    var fecha = dateInputToDDMMYY_(document.getElementById('entryDateInput').value);
-    if (!fecha){ toast('Elegí una fecha válida'); return; }
+    if (!entrySelectedDate || !entrySelectedDate.fecha){ toast('Elegí una fecha válida'); return; }
+    var fecha = entrySelectedDate.fecha;
+    var comentario = entrySelectedDate.comentario || '';
     var scriptUrl = localStorage.getItem(LS_SCRIPT_URL);
     if (!scriptUrl){ toast('No configuraste el link del Apps Script todavía'); return; }
 
@@ -1296,7 +1416,7 @@
     fetch(scriptUrl, {
       method: 'POST',
       headers: {'Content-Type': 'text/plain;charset=utf-8'},
-      body: JSON.stringify({ action: 'saveAsistencia', fecha: fecha, entries: entries })
+      body: JSON.stringify({ action: 'saveAsistencia', fecha: fecha, comentario: comentario, entries: entries })
     }).then(function(r){ return r.json(); }).then(function(res){
       btn.disabled = false;
       btn.textContent = 'Guardar asistencia del grupo';
@@ -1403,7 +1523,7 @@
 
     if (!state.query){
       countLine.textContent = state.data.length + ' almas en el directorio · escribí para buscar';
-      container.innerHTML = renderBirthdaysCard() + renderCongregationSummary() + renderYearSummary();
+      container.innerHTML = renderActiveDateTotal() + renderBirthdaysCard() + renderCongregationSummary() + renderYearSummary();
       return;
     }
 
