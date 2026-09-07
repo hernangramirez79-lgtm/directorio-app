@@ -229,9 +229,13 @@
     max-height:220px;overflow-y:auto;
   }
   .entry-suggestion-item{
-    width:100%;text-align:left;background:none;border:none;padding:10px 13px;font-size:13.5px;
+    width:100%;text-align:left;background:none;border:none;padding:10px 13px;
     font-family:inherit;color:var(--ink);cursor:pointer;border-bottom:1px solid var(--line);
+    display:flex;flex-direction:column;gap:2px;
   }
+  .entry-suggestion-name{font-size:13.5px;font-weight:600;}
+  .entry-suggestion-sub{font-size:11.5px;color:var(--ink-soft);}
+  .entry-suggestion-nogroup{color:var(--danger);font-weight:600;}
   .entry-suggestion-item:last-child{border-bottom:none;}
   .entry-suggestion-item:active{background:var(--paper);}
   .entry-suggestion-empty{padding:10px 13px;font-size:13px;color:var(--ink-soft);}
@@ -515,7 +519,7 @@
     </div>
 
     <div class="field-block">
-      <label>Buscar persona</label>
+      <label>Buscar alma</label>
       <input type="text" id="entrySearchInput" placeholder="Escribí un nombre o apellido…" autocomplete="off">
       <div id="entrySuggestions" class="entry-suggestions" style="display:none;"></div>
     </div>
@@ -1111,7 +1115,7 @@
     document.getElementById('trackingYearToggle').textContent = 'Ver ' + (2000 + parseInt(trackingYY, 10) - (trackingYY === new Date().getFullYear().toString().slice(-2) ? 1 : -1));
     document.getElementById('trackingChips').innerHTML = renderTrackingChips();
     var list = computeTrackingList(trackingCode, trackingYY);
-    document.getElementById('trackingCountLine').textContent = list.length + (list.length === 1 ? ' persona · ' : ' personas · ') + (2000 + parseInt(trackingYY, 10));
+    document.getElementById('trackingCountLine').textContent = list.length + (list.length === 1 ? ' alma · ' : ' almas · ') + (2000 + parseInt(trackingYY, 10));
     var body = document.getElementById('trackingBody');
     if (!list.length){
       body.innerHTML = '<p class="vae-history-empty">Nadie registrado en esta categoría en ' + (2000 + parseInt(trackingYY, 10)) + '.</p>';
@@ -1205,7 +1209,13 @@
       return;
     }
     box.innerHTML = matches.map(function(p){
-      return '<button type="button" class="entry-suggestion-item" data-id="' + p.id + '">' + escapeHtml(p.nombreApellido) + '</button>';
+      var sub = p.grupoFamiliar
+        ? escapeHtml(p.grupoFamiliar)
+        : '<span class="entry-suggestion-nogroup">Sin grupo familiar asignado</span>';
+      return '<button type="button" class="entry-suggestion-item" data-id="' + p.id + '">' +
+        '<span class="entry-suggestion-name">' + escapeHtml(p.nombreApellido) + '</span>' +
+        '<span class="entry-suggestion-sub">' + sub + '</span>' +
+      '</button>';
     }).join('');
     box.style.display = 'block';
   });
@@ -1336,11 +1346,11 @@
                normalize(p.nombre).indexOf(qg) !== -1;
       }).sort(function(a, b){ return a.nombreApellido.localeCompare(b.nombreApellido); });
 
-      countLine.textContent = familia.length + (familia.length === 1 ? ' persona' : ' personas') + ' · ' + state.grupoFilter;
+      countLine.textContent = familia.length + (familia.length === 1 ? ' alma' : ' almas') + ' · ' + state.grupoFilter;
 
       var listHtml = '<button type="button" class="back-link" id="exitGrupoFilterBtn">&#8249; Volver al inicio</button>';
       if (!familia.length){
-        container.innerHTML = listHtml + '<div class="empty"><b>Sin resultados</b>No hay personas de este grupo con ese nombre.</div>';
+        container.innerHTML = listHtml + '<div class="empty"><b>Sin resultados</b>No hay almas de este grupo con ese nombre.</div>';
         return;
       }
       container.innerHTML = listHtml + '<div class="compact-list">' + familia.map(function(p){
@@ -1374,10 +1384,10 @@
                normalize(p.nombre).indexOf(q2) !== -1;
       }).sort(function(a, b){ return a.nombreApellido.localeCompare(b.nombreApellido); });
 
-      countLine.textContent = group.length + (group.length === 1 ? ' persona' : ' personas') + ' · ' + state.siervoFilter;
+      countLine.textContent = group.length + (group.length === 1 ? ' alma' : ' almas') + ' · ' + state.siervoFilter;
 
       if (!group.length){
-        container.innerHTML = '<div class="empty"><b>Sin resultados</b>No hay personas de este grupo con ese nombre.</div>';
+        container.innerHTML = '<div class="empty"><b>Sin resultados</b>No hay almas de este grupo con ese nombre.</div>';
         return;
       }
 
@@ -1392,7 +1402,7 @@
     }
 
     if (!state.query){
-      countLine.textContent = state.data.length + ' personas en el directorio · escribí para buscar';
+      countLine.textContent = state.data.length + ' almas en el directorio · escribí para buscar';
       container.innerHTML = renderBirthdaysCard() + renderCongregationSummary() + renderYearSummary();
       return;
     }
@@ -1793,7 +1803,7 @@
     records.forEach(function(r, i){ r.id = i; });
     state.data = records;
     localStorage.setItem(LS_DATA, JSON.stringify(records));
-    document.getElementById('peopleCountLabel').textContent = records.length + ' personas cargadas';
+    document.getElementById('peopleCountLabel').textContent = records.length + ' almas cargadas';
     renderResults();
   }
 
@@ -1802,7 +1812,7 @@
       var raw = localStorage.getItem(LS_DATA);
       if (raw){
         state.data = JSON.parse(raw);
-        document.getElementById('peopleCountLabel').textContent = state.data.length + ' personas cargadas';
+        document.getElementById('peopleCountLabel').textContent = state.data.length + ' almas cargadas';
       }
     } catch(e){}
     var lastSync = localStorage.getItem(LS_SYNC);
@@ -1838,7 +1848,7 @@
       localStorage.setItem(LS_SYNC, now);
       document.getElementById('syncLabel').textContent = 'Actualizado ' + formatSyncTime(now);
       document.getElementById('lastSyncText').textContent = formatSyncTime(now);
-      if (showToast) toast('Datos actualizados: ' + records.length + ' personas');
+      if (showToast) toast('Datos actualizados: ' + records.length + ' almas');
     }).catch(function(){
       if (showToast) toast('No se pudo sincronizar (revisá el link o tu conexión)');
     });
@@ -1958,7 +1968,7 @@
           localStorage.setItem(LS_SYNC, now);
           document.getElementById('syncLabel').textContent = 'Actualizado ' + formatSyncTime(now);
           document.getElementById('lastSyncText').textContent = formatSyncTime(now);
-          toast('Importado: ' + records.length + ' personas');
+          toast('Importado: ' + records.length + ' almas');
         } else {
           toast('No se encontraron datos en el archivo');
         }
@@ -1983,7 +1993,7 @@
               localStorage.setItem(LS_SYNC, now);
               document.getElementById('syncLabel').textContent = 'Actualizado ' + formatSyncTime(now);
               document.getElementById('lastSyncText').textContent = formatSyncTime(now);
-              toast('Importado: ' + records.length + ' personas');
+              toast('Importado: ' + records.length + ' almas');
             } else {
               toast('No se encontraron datos en el archivo');
             }
