@@ -48,6 +48,7 @@
     box-shadow:0 4px 14px rgba(28,47,73,0.18);
   }
   .header-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .header-actions{display:flex;align-items:center;gap:8px;flex:none;}
   .brand{display:flex;align-items:center;gap:10px;}
   .brand-mark{
     width:34px;height:34px;border-radius:9px;
@@ -222,6 +223,30 @@
   .tracking-chip.active{background:#fdecea;color:var(--danger);border-color:var(--danger);}
   #trackingBody .compact-item{cursor:default;}
   #trackingBody .compact-item:active{background:none;}
+
+  .entry-suggestions{
+    margin-top:6px;border:1px solid var(--line);border-radius:10px;background:#fff;
+    max-height:220px;overflow-y:auto;
+  }
+  .entry-suggestion-item{
+    width:100%;text-align:left;background:none;border:none;padding:10px 13px;font-size:13.5px;
+    font-family:inherit;color:var(--ink);cursor:pointer;border-bottom:1px solid var(--line);
+  }
+  .entry-suggestion-item:last-child{border-bottom:none;}
+  .entry-suggestion-item:active{background:var(--paper);}
+  .entry-suggestion-empty{padding:10px 13px;font-size:13px;color:var(--ink-soft);}
+  .entry-group-title{
+    font-size:12px;font-weight:700;color:var(--navy-2);text-transform:uppercase;letter-spacing:.3px;
+    margin:16px 0 10px;
+  }
+  .entry-person-row{margin-bottom:14px;}
+  .entry-person-name{margin:0 0 6px;font-size:13.5px;font-weight:600;color:var(--ink);}
+  .entry-chips-row{display:flex;flex-wrap:wrap;gap:6px;}
+  .entry-chip{
+    padding:6px 11px;border-radius:20px;background:var(--paper);color:var(--ink-soft);
+    font-size:12px;font-weight:600;border:1.5px solid transparent;cursor:pointer;font-family:inherit;
+  }
+  .entry-chip.active{background:#e2f3e8;color:var(--ok);border-color:var(--ok);}
   .summary-scroll{
     display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch;
     scrollbar-width:thin;scrollbar-color:var(--gold) transparent;cursor:grab;
@@ -370,9 +395,14 @@
           <small id="peopleCountLabel">Cargando datos…</small>
         </div>
       </div>
+      <div class="header-actions">
+      <button class="icon-btn" id="attendanceEntryBtn" aria-label="Cargar asistencia" title="Cargar asistencia">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+      </button>
       <button class="icon-btn" id="settingsBtn" aria-label="Configuración">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1z"></path></svg>
       </button>
+      </div>
     </div>
     <div class="search-wrap">
       <svg class="search-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1c2430" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
@@ -471,6 +501,32 @@
     <div id="trackingBody"></div>
     <div class="divider"></div>
     <button class="btn btn-outline" id="closeTrackingBtn">Cerrar</button>
+  </div>
+</div>
+
+<div class="overlay" id="entryOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2>Cargar asistencia</h2>
+
+    <div class="field-block">
+      <label>Fecha</label>
+      <input type="date" id="entryDateInput">
+    </div>
+
+    <div class="field-block">
+      <label>Buscar persona</label>
+      <input type="text" id="entrySearchInput" placeholder="Escribí un nombre o apellido…" autocomplete="off">
+      <div id="entrySuggestions" class="entry-suggestions" style="display:none;"></div>
+    </div>
+
+    <div id="entryGroupWrap"></div>
+
+    <div class="divider"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="saveEntryBtn" style="display:none;">Guardar asistencia del grupo</button>
+    </div>
+    <button class="btn btn-outline" id="closeEntryBtn" style="margin-top:10px;">Cerrar</button>
   </div>
 </div>
 
@@ -1098,6 +1154,154 @@
   document.getElementById('results').addEventListener('click', function(e){
     var openBtn = e.target.closest('#openTrackingBtn');
     if (openBtn){ openTracking(); }
+  });
+
+  // ---------- Cargar asistencia (Presente / Ausente / etc. desde la app) ----------
+  var entryGroup = [];
+  var entrySelectedCodes = {};
+
+  function todayForDateInput_(){
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+
+  function dateInputToDDMMYY_(val){
+    // val viene como yyyy-mm-dd del input type=date
+    var parts = (val || '').split('-');
+    if (parts.length !== 3) return '';
+    return parts[2] + '/' + parts[1] + '/' + parts[0].slice(-2);
+  }
+
+  function openEntryOverlay(){
+    document.getElementById('entryDateInput').value = todayForDateInput_();
+    document.getElementById('entrySearchInput').value = '';
+    document.getElementById('entrySuggestions').style.display = 'none';
+    document.getElementById('entryGroupWrap').innerHTML = '';
+    document.getElementById('saveEntryBtn').style.display = 'none';
+    entryGroup = [];
+    entrySelectedCodes = {};
+    document.getElementById('entryOverlay').classList.add('show');
+    setTimeout(function(){ document.getElementById('entrySearchInput').focus(); }, 50);
+  }
+  function closeEntryOverlay(){
+    document.getElementById('entryOverlay').classList.remove('show');
+  }
+  document.getElementById('attendanceEntryBtn').addEventListener('click', openEntryOverlay);
+  document.getElementById('closeEntryBtn').addEventListener('click', closeEntryOverlay);
+  document.getElementById('entryOverlay').addEventListener('click', function(e){
+    if (e.target === this) closeEntryOverlay();
+  });
+
+  document.getElementById('entrySearchInput').addEventListener('input', function(){
+    var q = normalize(this.value);
+    var box = document.getElementById('entrySuggestions');
+    if (q.length < 2){ box.style.display = 'none'; box.innerHTML = ''; return; }
+    var matches = state.data.filter(function(p){
+      return normalize(p.nombreApellido).indexOf(q) !== -1;
+    }).slice(0, 8);
+    if (!matches.length){
+      box.innerHTML = '<div class="entry-suggestion-empty">Sin resultados</div>';
+      box.style.display = 'block';
+      return;
+    }
+    box.innerHTML = matches.map(function(p){
+      return '<button type="button" class="entry-suggestion-item" data-id="' + p.id + '">' + escapeHtml(p.nombreApellido) + '</button>';
+    }).join('');
+    box.style.display = 'block';
+  });
+
+  document.getElementById('entrySuggestions').addEventListener('click', function(e){
+    var item = e.target.closest('.entry-suggestion-item');
+    if (!item) return;
+    var id = item.getAttribute('data-id');
+    var person = state.data.filter(function(p){ return String(p.id) === String(id); })[0];
+    if (!person) return;
+    document.getElementById('entrySearchInput').value = person.nombreApellido;
+    document.getElementById('entrySuggestions').style.display = 'none';
+    loadEntryGroup(person);
+  });
+
+  function loadEntryGroup(person){
+    if (person.grupoFamiliar){
+      entryGroup = state.data.filter(function(p){ return p.grupoFamiliar === person.grupoFamiliar; })
+        .sort(function(a, b){ return a.nombreApellido.localeCompare(b.nombreApellido); });
+    } else {
+      entryGroup = [person];
+    }
+    entrySelectedCodes = {};
+    renderEntryGroup();
+  }
+
+  function entryChipsHtml(personId){
+    return CODE_ORDER.map(function(c){
+      var active = entrySelectedCodes[personId] === c;
+      return '<button type="button" class="entry-chip' + (active ? ' active' : '') + '" data-person-id="' + personId + '" data-code="' + c + '">' +
+        (ASISTENCIA_ICONS[c] || '') + ' ' + (ASISTENCIA_CODES[c] || c) +
+      '</button>';
+    }).join('');
+  }
+
+  function renderEntryGroup(){
+    var wrap = document.getElementById('entryGroupWrap');
+    if (!entryGroup.length){
+      wrap.innerHTML = '';
+      document.getElementById('saveEntryBtn').style.display = 'none';
+      return;
+    }
+    var groupLabel = entryGroup[0].grupoFamiliar
+      ? 'Grupo Familiar: ' + entryGroup[0].grupoFamiliar
+      : entryGroup[0].nombreApellido;
+    wrap.innerHTML = '<p class="entry-group-title">' + escapeHtml(groupLabel) + '</p>' +
+      entryGroup.map(function(p){
+        return '<div class="entry-person-row">' +
+          '<p class="entry-person-name">' + escapeHtml(p.nombreApellido) + '</p>' +
+          '<div class="entry-chips-row">' + entryChipsHtml(p.id) + '</div>' +
+        '</div>';
+      }).join('');
+    document.getElementById('saveEntryBtn').style.display = 'block';
+  }
+
+  document.getElementById('entryGroupWrap').addEventListener('click', function(e){
+    var chip = e.target.closest('.entry-chip');
+    if (!chip) return;
+    var pid = chip.getAttribute('data-person-id');
+    var code = chip.getAttribute('data-code');
+    entrySelectedCodes[pid] = (entrySelectedCodes[pid] === code) ? null : code;
+    renderEntryGroup();
+  });
+
+  document.getElementById('saveEntryBtn').addEventListener('click', function(){
+    var fecha = dateInputToDDMMYY_(document.getElementById('entryDateInput').value);
+    if (!fecha){ toast('Elegí una fecha válida'); return; }
+    var scriptUrl = localStorage.getItem(LS_SCRIPT_URL);
+    if (!scriptUrl){ toast('No configuraste el link del Apps Script todavía'); return; }
+
+    var entries = entryGroup.map(function(p){
+      return { apellido: p.apellido, nombre: p.nombre, codigo: entrySelectedCodes[p.id] || 'A' };
+    });
+
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    fetch(scriptUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action: 'saveAsistencia', fecha: fecha, entries: entries })
+    }).then(function(r){ return r.json(); }).then(function(res){
+      btn.disabled = false;
+      btn.textContent = 'Guardar asistencia del grupo';
+      if (res && res.ok){
+        toast('Asistencia guardada');
+        closeEntryOverlay();
+        syncAsistenciaFromUrl(false);
+      } else {
+        toast('No se pudo guardar');
+      }
+    }).catch(function(){
+      btn.disabled = false;
+      btn.textContent = 'Guardar asistencia del grupo';
+      toast('Sin conexión, no se pudo guardar');
+    });
   });
 
   // ---------- Rendering ----------
