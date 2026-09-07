@@ -258,6 +258,7 @@
   }
   .entry-date-btn.active{border:2px solid var(--navy-2);background:#eef3f8;font-weight:700;color:var(--navy-2);}
   .active-date-banner{
+    width:100%;border:none;cursor:pointer;font-family:inherit;text-align:left;
     background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);border-radius:14px;
     padding:14px 16px;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
   }
@@ -1009,7 +1010,7 @@
     });
 
     var sub = active.comentario ? active.label + ' · ' + active.comentario : active.label;
-    return '<div class="active-date-banner">' +
+    return '<button type="button" class="active-date-banner" data-fecha="' + escapeHtml(active.fecha) + '">' +
       '<div>' +
         '<p class="adb-label">Cargando asistencia de</p>' +
         '<p class="adb-date">' + escapeHtml(sub) + ' ' + escapeHtml(active.fecha) + '</p>' +
@@ -1018,7 +1019,7 @@
         '<p class="adb-count">' + count + '</p>' +
         '<p class="adb-sub">almas cargadas</p>' +
       '</div>' +
-    '</div>';
+    '</button>';
   }
 
   function renderBirthdaysCard(){
@@ -1054,8 +1055,10 @@
         '<span class="vh-time">' + dayStr + ' · ' + p.age + ' años</span></li>';
     }).join('');
     return '<div class="summary-card">' +
-      '<p class="summary-title">🎂 ' + escapeHtml(title) + '</p>' +
-      '<ul class="vae-history-list">' + items + '</ul>' +
+      '<button type="button" class="date-accordion-header birthday-toggle-header" style="width:100%;background:none;padding:0;margin-bottom:0;">' +
+        '<span class="attendance-block-title" style="font-size:14.5px;text-transform:none;">🎂 ' + escapeHtml(title) + '</span>' +
+      '</button>' +
+      '<ul class="vae-history-list birthday-list" style="display:none;margin-top:12px;">' + items + '</ul>' +
     '</div>';
   }
 
@@ -1097,6 +1100,31 @@
         '<div class="date-accordion-body" style="display:none;">' + codeSections + '</div>' +
       '</div>';
     }).join('');
+  }
+
+  function renderDateDetailBody(fecha){
+    var byCode = {};
+    state.data.forEach(function(p){
+      parseAsistenciaHistorial(p.asistenciaHistorial).forEach(function(en){
+        if (en.fecha !== fecha) return;
+        var c = (en.codigo || '').toUpperCase();
+        byCode[c] = byCode[c] || [];
+        byCode[c].push(p.nombreApellido);
+      });
+    });
+    var sections = CODE_ORDER.filter(function(c){ return byCode[c] && byCode[c].length; }).map(function(c){
+      var names = byCode[c].slice().sort();
+      return '<p class="month-detail-heading"><span class="pie-icon">' + (ASISTENCIA_ICONS[c] || '') + '</span>' +
+          escapeHtml(ASISTENCIA_CODES[c] || c) + ' <b>(' + names.length + ')</b></p>' +
+        '<p class="date-accordion-names">' + names.map(escapeHtml).join(' · ') + '</p>';
+    }).join('');
+    return sections || '<p class="vae-history-empty">Todavía no se cargó nadie para esta fecha.</p>';
+  }
+
+  function openDateDetail(fecha){
+    document.getElementById('monthDetailTitle').textContent = 'Asistencia · ' + fecha;
+    document.getElementById('monthDetailBody').innerHTML = renderDateDetailBody(fecha);
+    document.getElementById('monthDetailOverlay').classList.add('show');
   }
 
   function openMonthDetail(mk){
@@ -1232,12 +1260,15 @@
   function renderEntryDateOptions(){
     var sunday = nextDateForWeekday_(0);
     var wednesday = nextDateForWeekday_(3);
+    var options = [
+      { kind: 'sunday', date: sunday, label: 'Domingo' },
+      { kind: 'wednesday', date: wednesday, label: 'Miércoles' }
+    ].sort(function(a, b){ return a.date - b.date; });
     var box = document.getElementById('entryDateOptions');
-    box.innerHTML =
-      '<button type="button" class="entry-date-btn" data-kind="sunday">' + formatDDMMYYYY_(sunday) + ' · Domingo</button>' +
-      '<button type="button" class="entry-date-btn" data-kind="wednesday">' + formatDDMMYYYY_(wednesday) + ' · Miércoles</button>' +
-      '<button type="button" class="entry-date-btn" data-kind="other">Otra fecha</button>';
-    selectEntryDateKind('sunday', sunday);
+    box.innerHTML = options.map(function(o){
+      return '<button type="button" class="entry-date-btn" data-kind="' + o.kind + '">' + formatDDMMYYYY_(o.date) + ' · ' + o.label + '</button>';
+    }).join('') + '<button type="button" class="entry-date-btn" data-kind="other">Otra fecha</button>';
+    selectEntryDateKind(options[0].kind, options[0].date);
   }
 
   function selectEntryDateKind(kind, dateObj){
@@ -1759,6 +1790,20 @@
         var dir = parseInt(navBtn.getAttribute('data-scroll-dir'), 10) || 1;
         scroller.scrollBy({ left: dir * 165, behavior: 'smooth' });
       }
+      return;
+    }
+    var birthdayHeader = e.target.closest('.birthday-toggle-header');
+    if (birthdayHeader){
+      var bList = birthdayHeader.nextElementSibling;
+      var bOpen = bList.style.display !== 'none';
+      bList.style.display = bOpen ? 'none' : 'block';
+      birthdayHeader.classList.toggle('open', !bOpen);
+      return;
+    }
+    var dateBanner = e.target.closest('.active-date-banner');
+    if (dateBanner){
+      var bFecha = dateBanner.getAttribute('data-fecha');
+      if (bFecha) openDateDetail(bFecha);
       return;
     }
     var monthCard = e.target.closest('.clickable-month');
