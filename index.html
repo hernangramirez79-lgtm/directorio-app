@@ -929,8 +929,10 @@
     }).join('');
     if (!cards) return '';
     return '<div class="summary-card">' +
-      '<p class="summary-title">Asistencia de Almas</p>' +
-      '<div class="summary-body">' + cards + '</div>' +
+      '<button type="button" class="date-accordion-header birthday-toggle-header" style="width:100%;background:none;padding:0;margin-bottom:0;">' +
+        '<span class="attendance-block-title" style="font-size:14.5px;text-transform:none;">Asistencia de Almas</span>' +
+      '</button>' +
+      '<div class="summary-body birthday-list" style="display:none;margin-top:12px;">' + cards + '</div>' +
     '</div>';
   }
 
@@ -967,9 +969,10 @@
       body = '<p class="vae-history-empty">Sin registros de asistencia todavía en ' + fullYear + '.</p>';
     }
 
+    var titleText = (ownerId === 'home') ? 'Asistencia Anual' : ('Asistencia · ' + fullYear);
     return '<div class="attendance-block" data-owner="' + ownerId + '" data-shown-year="' + shownYY + '" data-this-year="' + thisYY + '" data-prev-year="' + prevYY + '">' +
       '<div class="attendance-block-header">' +
-        '<span class="attendance-block-title">Asistencia · ' + fullYear + '</span>' +
+        '<span class="attendance-block-title">' + titleText + '</span>' +
         '<button type="button" class="year-toggle-link" data-target-year="' + otherYY + '">Ver ' + otherLabel + '</button>' +
       '</div>' +
       body +
@@ -1012,7 +1015,7 @@
     var sub = active.comentario ? active.label + ' · ' + active.comentario : active.label;
     return '<button type="button" class="active-date-banner" data-fecha="' + escapeHtml(active.fecha) + '">' +
       '<div>' +
-        '<p class="adb-label">Cargando asistencia de</p>' +
+        '<p class="adb-label">Resumen de asistencia de</p>' +
         '<p class="adb-date">' + escapeHtml(sub) + ' ' + escapeHtml(active.fecha) + '</p>' +
       '</div>' +
       '<div>' +
@@ -1229,7 +1232,9 @@
 
   document.getElementById('results').addEventListener('click', function(e){
     var openBtn = e.target.closest('#openTrackingBtn');
-    if (openBtn){ openTracking(); }
+    if (openBtn){ openTracking(); return; }
+    var openEntry = e.target.closest('#openEntryBtn');
+    if (openEntry){ openEntryOverlay(); return; }
   });
 
   // ---------- Cargar asistencia (Presente / Ausente / etc. desde la app) ----------
@@ -1554,7 +1559,8 @@
 
     if (!state.query){
       countLine.textContent = state.data.length + ' almas en el directorio · escribí para buscar';
-      container.innerHTML = renderActiveDateTotal() + renderBirthdaysCard() + renderCongregationSummary() + renderYearSummary();
+      container.innerHTML = '<button type="button" class="btn btn-primary" id="openEntryBtn" style="margin-bottom:14px;">📋 Cargar Asistencia</button>' +
+        renderActiveDateTotal() + renderBirthdaysCard() + renderCongregationSummary() + renderYearSummary();
       return;
     }
 
