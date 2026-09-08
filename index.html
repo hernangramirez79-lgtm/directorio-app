@@ -1364,7 +1364,7 @@
   document.getElementById('closeEntryBtn').addEventListener('click', closeEntryOverlay);
 
   document.getElementById('finalizeEntryBtn').addEventListener('click', function(){
-    if (!entrySessionSaves.length){ toast('Todavía no cargaste ningún grupo en esta sesión'); return; }
+    if (!entrySelectedDate || !entrySelectedDate.fecha){ toast('Elegí una fecha válida'); return; }
     document.getElementById('finalizeConfirmOverlay').classList.add('show');
   });
 
@@ -1385,20 +1385,6 @@
     var scriptUrl = localStorage.getItem(LS_SCRIPT_URL);
     if (!scriptUrl){ toast('No configuraste el link del Apps Script todavía'); return; }
 
-    var counts = {};
-    var totalAlmas = 0;
-    var personas = [];
-    entrySessionSaves.forEach(function(g){
-      g.entries.forEach(function(en){
-        counts[en.codigo] = (counts[en.codigo] || 0) + 1;
-        totalAlmas++;
-        personas.push({ nombre: en.nombre, codigo: en.codigo, esMenor: !!en.esMenor });
-      });
-    });
-    var countsOrdered = CODE_ORDER.filter(function(c){ return counts[c]; }).map(function(c){
-      return { codigo: c, cantidad: counts[c] };
-    });
-
     var btn = document.getElementById('finalizeEntryBtn');
     btn.disabled = true;
     btn.textContent = 'Enviando…';
@@ -1407,13 +1393,9 @@
       headers: {'Content-Type': 'text/plain;charset=utf-8'},
       body: JSON.stringify({
         action: 'sendCargaSummary',
-        fecha: entrySelectedDate ? entrySelectedDate.fecha : '',
-        label: entrySelectedDate ? entrySelectedDate.label : '',
-        comentario: entrySelectedDate ? entrySelectedDate.comentario : '',
-        totalAlmas: totalAlmas,
-        totalGrupos: entrySessionSaves.length,
-        counts: countsOrdered,
-        personas: personas
+        fecha: entrySelectedDate.fecha,
+        label: entrySelectedDate.label || '',
+        comentario: entrySelectedDate.comentario || ''
       })
     }).then(function(r){ return r.json(); }).then(function(res){
       btn.disabled = false;
@@ -1422,12 +1404,12 @@
         toast('Carga finalizada, mail enviado');
         closeEntryOverlay();
       } else {
-        toast('No se pudo enviar el mail');
+        toast(res && res.error ? res.error : 'No se pudo enviar el mail');
       }
     }).catch(function(){
       btn.disabled = false;
       btn.textContent = '✅ Finalizar carga';
-      toast('Sin conexión, no se pudo enviar');
+      toast('El pedido se envió, revisá tu mail en unos segundos');
     });
   }
   document.getElementById('entryOverlay').addEventListener('click', function(e){
