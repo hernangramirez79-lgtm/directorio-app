@@ -1419,6 +1419,7 @@
       btn.disabled = false;
       btn.textContent = '✅ Finalizar carga';
       if (res && res.ok){
+        if (res.debug) alert(res.debug);
         toast('Carga finalizada, mail enviado');
         closeEntryOverlay();
       } else {
