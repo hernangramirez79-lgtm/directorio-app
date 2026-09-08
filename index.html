@@ -241,8 +241,9 @@
   .entry-suggestion-empty{padding:10px 13px;font-size:13px;color:var(--ink-soft);}
   .entry-group-title{
     font-size:12px;font-weight:700;color:var(--navy-2);text-transform:uppercase;letter-spacing:.3px;
-    margin:16px 0 10px;
+    margin:16px 0 4px;
   }
+  .entry-group-siervo{font-size:12px;color:var(--ink-soft);margin:0 0 14px;}
   .entry-person-row{margin-bottom:14px;}
   .entry-person-name{margin:0 0 6px;font-size:13.5px;font-weight:600;color:var(--ink);}
   .entry-chips-row{display:flex;flex-wrap:wrap;gap:6px;}
@@ -548,7 +549,19 @@
     <div class="btn-row">
       <button class="btn btn-primary" id="saveEntryBtn" style="display:none;">Guardar asistencia del grupo</button>
     </div>
+    <button class="btn btn-outline" id="finalizeEntryBtn" style="margin-top:10px;">✅ Finalizar carga</button>
     <button class="btn btn-outline" id="closeEntryBtn" style="margin-top:10px;">Cerrar</button>
+  </div>
+</div>
+
+<div class="overlay" id="finalizeConfirmOverlay">
+  <div class="sheet" style="max-width:340px;text-align:center;">
+    <p style="font-size:16px;font-weight:700;margin:0 0 8px;color:var(--ink);">¿Finalizar carga?</p>
+    <p style="font-size:13.5px;color:var(--ink-soft);margin:0 0 20px;line-height:1.5;">Se va a cerrar esta sesión y se va a mandar el mail con el resumen de lo cargado.</p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline" id="finalizeConfirmNo" style="flex:1;">No, seguir cargando</button>
+      <button class="btn btn-primary" id="finalizeConfirmYes" style="flex:1;">Sí, finalizar</button>
+    </div>
   </div>
 </div>
 
@@ -1241,6 +1254,7 @@
   var entryGroup = [];
   var entrySelectedCodes = {};
   var entrySelectedDate = null; // { fecha: 'dd/mm/aa', label: 'Domingo', comentario: '' }
+  var entrySessionSaves = []; // [{ groupLabel, entries: [{nombre, codigo}] }] de esta sesión
   var DIAS_SEMANA_ = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   var LS_ACTIVE_ENTRY_DATE = 'directorio_active_entry_date';
 
@@ -1339,6 +1353,7 @@
     document.getElementById('saveEntryBtn').style.display = 'none';
     entryGroup = [];
     entrySelectedCodes = {};
+    entrySessionSaves = [];
     document.getElementById('entryOverlay').classList.add('show');
     setTimeout(function(){ document.getElementById('entrySearchInput').focus(); }, 50);
   }
@@ -1347,6 +1362,74 @@
   }
   document.getElementById('attendanceEntryBtn').addEventListener('click', openEntryOverlay);
   document.getElementById('closeEntryBtn').addEventListener('click', closeEntryOverlay);
+
+  document.getElementById('finalizeEntryBtn').addEventListener('click', function(){
+    if (!entrySessionSaves.length){ toast('Todavía no cargaste ningún grupo en esta sesión'); return; }
+    document.getElementById('finalizeConfirmOverlay').classList.add('show');
+  });
+
+  document.getElementById('finalizeConfirmNo').addEventListener('click', function(){
+    document.getElementById('finalizeConfirmOverlay').classList.remove('show');
+  });
+
+  document.getElementById('finalizeConfirmOverlay').addEventListener('click', function(e){
+    if (e.target === this) this.classList.remove('show');
+  });
+
+  document.getElementById('finalizeConfirmYes').addEventListener('click', function(){
+    document.getElementById('finalizeConfirmOverlay').classList.remove('show');
+    reallyFinalizeEntry();
+  });
+
+  function reallyFinalizeEntry(){
+    var scriptUrl = localStorage.getItem(LS_SCRIPT_URL);
+    if (!scriptUrl){ toast('No configuraste el link del Apps Script todavía'); return; }
+
+    var counts = {};
+    var totalAlmas = 0;
+    var personas = [];
+    entrySessionSaves.forEach(function(g){
+      g.entries.forEach(function(en){
+        counts[en.codigo] = (counts[en.codigo] || 0) + 1;
+        totalAlmas++;
+        personas.push({ nombre: en.nombre, codigo: en.codigo, esMenor: !!en.esMenor });
+      });
+    });
+    var countsOrdered = CODE_ORDER.filter(function(c){ return counts[c]; }).map(function(c){
+      return { codigo: c, cantidad: counts[c] };
+    });
+
+    var btn = document.getElementById('finalizeEntryBtn');
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+    fetch(scriptUrl, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify({
+        action: 'sendCargaSummary',
+        fecha: entrySelectedDate ? entrySelectedDate.fecha : '',
+        label: entrySelectedDate ? entrySelectedDate.label : '',
+        comentario: entrySelectedDate ? entrySelectedDate.comentario : '',
+        totalAlmas: totalAlmas,
+        totalGrupos: entrySessionSaves.length,
+        counts: countsOrdered,
+        personas: personas
+      })
+    }).then(function(r){ return r.json(); }).then(function(res){
+      btn.disabled = false;
+      btn.textContent = '✅ Finalizar carga';
+      if (res && res.ok){
+        toast('Carga finalizada, mail enviado');
+        closeEntryOverlay();
+      } else {
+        toast('No se pudo enviar el mail');
+      }
+    }).catch(function(){
+      btn.disabled = false;
+      btn.textContent = '✅ Finalizar carga';
+      toast('Sin conexión, no se pudo enviar');
+    });
+  }
   document.getElementById('entryOverlay').addEventListener('click', function(e){
     if (e.target === this) closeEntryOverlay();
   });
@@ -1416,7 +1499,11 @@
     var groupLabel = entryGroup[0].grupoFamiliar
       ? 'Grupo Familiar: ' + entryGroup[0].grupoFamiliar
       : entryGroup[0].nombreApellido;
+    var siervoLabel = entryGroup[0].siervoResponsable
+      ? '<p class="entry-group-siervo">Siervo Responsable: ' + escapeHtml(entryGroup[0].siervoResponsable) + '</p>'
+      : '';
     wrap.innerHTML = '<p class="entry-group-title">' + escapeHtml(groupLabel) + '</p>' +
+      siervoLabel +
       entryGroup.map(function(p){
         return '<div class="entry-person-row">' +
           '<p class="entry-person-name">' + escapeHtml(p.nombreApellido) + '</p>' +
@@ -1445,6 +1532,7 @@
     var entries = entryGroup.map(function(p){
       return { apellido: p.apellido, nombre: p.nombre, codigo: entrySelectedCodes[p.id] || 'A' };
     });
+    var groupLabel = entryGroup[0].grupoFamiliar || entryGroup[0].nombreApellido;
 
     var btn = this;
     btn.disabled = true;
@@ -1458,7 +1546,22 @@
       btn.textContent = 'Guardar asistencia del grupo';
       if (res && res.ok){
         toast('Asistencia guardada');
-        closeEntryOverlay();
+        entrySessionSaves.push({
+          groupLabel: groupLabel,
+          entries: entryGroup.map(function(p){
+            return {
+              nombre: p.nombreApellido,
+              codigo: entrySelectedCodes[p.id] || 'A',
+              esMenor: (function(){ var n = parseInt(p.edad, 10); return !isNaN(n) && n < 18; })()
+            };
+          })
+        });
+        entryGroup = [];
+        entrySelectedCodes = {};
+        document.getElementById('entryGroupWrap').innerHTML = '';
+        document.getElementById('saveEntryBtn').style.display = 'none';
+        document.getElementById('entrySearchInput').value = '';
+        document.getElementById('entrySearchInput').focus();
         syncAsistenciaFromUrl(false);
       } else {
         toast('No se pudo guardar');
