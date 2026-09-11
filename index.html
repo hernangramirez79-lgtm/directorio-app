@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#5793c9">
+<meta name="theme-color" content="#3d7ab0">
 <title>Directorio Portal</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
@@ -13,19 +13,19 @@
 <meta name="apple-mobile-web-app-title" content="Directorio">
 <style>
   :root{
-    --navy:#3d7ab0;
-    --navy-2:#5793c9;
+    --navy:#2c5f85;
+    --navy-2:#3d7ab0;
     --gold:#f0b43c;
     --paper:#f6f3ec;
     --card:#fffdf9;
     --ink:#1c2430;
-    --ink-soft:#5b6472;
+    --ink-soft:#43505f;
     --line:#e6e1d3;
     --danger:#c0392b;
     --ok:#2e7d4f;
     --radius:14px;
-    --shadow:0 2px 10px rgba(61,122,176,0.10);
-    font-size:16px;
+    --shadow:0 2px 10px rgba(44,95,133,0.12);
+    font-size:17px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -57,8 +57,10 @@
     font-weight:800;color:var(--navy-2);font-size:16px;
     flex:none;
   }
-  .brand h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.2px;}
-  .brand small{display:block;font-size:11.5px;color:#c9d4e4;font-weight:500;margin-top:1px;}
+  .brand h1{font-size:17px;margin:0;font-weight:800;letter-spacing:.2px;color:#fff;
+    text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;}
+  .brand small{display:block;font-size:11.5px;color:#fff;font-weight:700;margin-top:1px;
+    text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;}
   .icon-btn{
     width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,0.18);
     background:rgba(255,255,255,0.08);color:#fff;display:flex;align-items:center;justify-content:center;
@@ -68,7 +70,7 @@
   .search-wrap{margin-top:14px;position:relative;}
   #searchInput{
     width:100%;padding:13px 14px 13px 42px;border-radius:12px;border:none;
-    font-size:16px;background:#fff;color:var(--ink);outline:none;
+    font-size:17px;background:#fff;color:var(--ink);outline:none;
   }
   .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);opacity:.55;}
   .filter-row{margin-top:10px;display:flex;align-items:center;gap:8px;}
@@ -112,12 +114,12 @@
     background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
     padding:14px 16px;margin-bottom:10px;border:1px solid var(--line);
   }
-  .card-name{font-size:16px;font-weight:700;color:var(--navy-2);margin:0 0 2px;}
-  .card-sub{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;}
+  .card-name{font-size:17.5px;font-weight:700;color:var(--navy-2);margin:0 0 2px;}
+  .card-sub{font-size:13.5px;color:var(--ink-soft);margin:0 0 10px;}
   .field-grid{display:grid;grid-template-columns:1fr;gap:7px;}
-  .field{display:flex;gap:10px;align-items:flex-start;font-size:14px;}
+  .field{display:flex;gap:10px;align-items:flex-start;font-size:15.5px;}
   .field .label{
-    flex:none;width:108px;color:var(--ink-soft);font-size:12px;font-weight:600;
+    flex:none;width:108px;color:var(--ink-soft);font-size:12.5px;font-weight:600;
     text-transform:uppercase;letter-spacing:.3px;padding-top:2px;
   }
   .field .value{flex:1;color:var(--ink);word-break:break-word;}
@@ -265,10 +267,14 @@
     background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);border-radius:14px;
     padding:14px 16px;color:#fff;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;
   }
-  .active-date-banner .adb-label{font-size:11.5px;color:#c9d4e4;margin:0;}
-  .active-date-banner .adb-date{font-size:14.5px;font-weight:700;margin:2px 0 0;}
-  .active-date-banner .adb-count{font-size:24px;font-weight:800;color:#ffffff;margin:0;text-align:right;}
-  .active-date-banner .adb-sub{font-size:10.5px;color:#c9d4e4;margin:0;text-align:right;}
+  .active-date-banner .adb-label{font-size:11.5px;color:#fff;font-weight:700;margin:0;
+    text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;}
+  .active-date-banner .adb-date{font-size:14.5px;font-weight:800;margin:2px 0 0;color:#fff;
+    text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;}
+  .active-date-banner .adb-count{font-size:24px;font-weight:800;color:#ffffff;margin:0;text-align:right;
+    text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;}
+  .active-date-banner .adb-sub{font-size:10.5px;color:#fff;font-weight:700;margin:0;text-align:right;
+    text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;}
   .summary-scroll{
     display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch;
     scrollbar-width:thin;scrollbar-color:var(--gold) transparent;cursor:grab;
@@ -338,7 +344,8 @@
     padding:12px 16px;border-radius:11px;border:none;font-size:14.5px;font-weight:700;
     cursor:pointer;width:100%;
   }
-  .btn-primary{background:var(--navy-2);color:#fff;}
+  .btn-primary{background:var(--navy-2);color:#fff;font-weight:700;
+    text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;}
   .btn-primary:active{background:var(--navy);}
   .btn-outline{background:#fff;color:var(--navy-2);border:1px solid var(--line);}
   .btn-danger{background:#fdecea;color:var(--danger);}
@@ -350,9 +357,10 @@
   .sync-row b{color:var(--ink);}
   .toast{
     position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 16px);transform:translateX(-50%) translateY(-10px);
-    background:var(--navy);color:#fff;padding:10px 18px;border-radius:30px;font-size:13.5px;
+    background:var(--navy);color:#fff;font-weight:700;padding:10px 18px;border-radius:30px;font-size:13.5px;
     box-shadow:0 6px 18px rgba(0,0,0,0.2);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;
     max-width:90vw;text-align:center;
+    text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
@@ -365,8 +373,10 @@
   #lockScreen.hidden{display:none;}
   .lock-mark{width:58px;height:58px;border-radius:16px;background:#ffffff;color:var(--navy-2);
     display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;margin-bottom:18px;}
-  #lockScreen h2{margin:0 0 6px;font-size:19px;}
-  #lockScreen > p{margin:0 0 22px;color:#c9d4e4;font-size:13.5px;}
+  #lockScreen h2{margin:0 0 6px;font-size:19px;font-weight:800;
+    text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;}
+  #lockScreen > p{margin:0 0 22px;color:#fff;font-weight:700;font-size:13.5px;
+    text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000;}
   .login-form{width:100%;max-width:280px;display:flex;flex-direction:column;gap:10px;}
   .login-form input{
     width:100%;padding:13px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.22);
@@ -530,7 +540,7 @@
 <div class="overlay" id="entryOverlay">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <h2>Cargar asistencia</h2>
+    <h2 id="entryOverlayTitle">Cargar asistencia</h2>
 
     <div class="field-block">
       <label>Fecha</label>
@@ -596,6 +606,11 @@
     return (str || '').toString()
       .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
       .toLowerCase().trim();
+  }
+
+  function isJuventud(p){
+    var v = normalize(p && p.juventud);
+    return v === 'si' || v === 'sí' || v === 'true' || v === 'x' || v === '1';
   }
 
   function escapeHtml(str){
@@ -670,11 +685,12 @@
     'telefono': 'telefonoFijo',
     'celular': 'celular',
     'direccion': 'direccion',
-    'vae': 'vae'
+    'vae': 'vae',
+    'juventud': 'juventud'
   };
 
   function mapRow(obj){
-    var rec = { nombreApellido:'', apellido:'', nombre:'', fechaNacimiento:'', edad:'', localidad:'', email:'', telefonoFijo:'', celular:'', direccion:'', vae:'' };
+    var rec = { nombreApellido:'', apellido:'', nombre:'', fechaNacimiento:'', edad:'', localidad:'', email:'', telefonoFijo:'', celular:'', direccion:'', vae:'', juventud:'' };
     Object.keys(obj).forEach(function(key){
       var target = HEADER_MAP[key];
       if (target) rec[target] = (obj[key] || '').toString().trim();
@@ -1250,7 +1266,9 @@
     var openBtn = e.target.closest('#openTrackingBtn');
     if (openBtn){ openTracking(); return; }
     var openEntry = e.target.closest('#openEntryBtn');
-    if (openEntry){ openEntryOverlay(); return; }
+    if (openEntry){ openEntryOverlay('general'); return; }
+    var openEntryJuv = e.target.closest('#openEntryJuventudBtn');
+    if (openEntryJuv){ openEntryOverlay('juventud'); return; }
   });
 
   // ---------- Cargar asistencia (Presente / Ausente / etc. desde la app) ----------
@@ -1258,6 +1276,7 @@
   var entrySelectedCodes = {};
   var entrySelectedDate = null; // { fecha: 'dd/mm/aa', label: 'Domingo', comentario: '' }
   var entrySessionSaves = []; // [{ groupLabel, entries: [{nombre, codigo}] }] de esta sesión
+  var entryMode = 'general'; // 'general' | 'juventud'
   var DIAS_SEMANA_ = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   var LS_ACTIVE_ENTRY_DATE = 'directorio_active_entry_date';
 
@@ -1280,13 +1299,18 @@
   }
 
   function renderEntryDateOptions(){
+    var box = document.getElementById('entryDateOptions');
+    if (entryMode === 'juventud'){
+      box.innerHTML = '';
+      selectEntryDateKind('other', null);
+      return;
+    }
     var sunday = nextDateForWeekday_(0);
     var wednesday = nextDateForWeekday_(3);
     var options = [
       { kind: 'sunday', date: sunday, label: 'Domingo' },
       { kind: 'wednesday', date: wednesday, label: 'Miércoles' }
     ].sort(function(a, b){ return a.date - b.date; });
-    var box = document.getElementById('entryDateOptions');
     box.innerHTML = options.map(function(o){
       return '<button type="button" class="entry-date-btn" data-kind="' + o.kind + '">' + formatDDMMYYYY_(o.date) + ' · ' + o.label + '</button>';
     }).join('') + '<button type="button" class="entry-date-btn" data-kind="other">Otra fecha</button>';
@@ -1338,7 +1362,7 @@
   });
 
   function updateActiveEntryDate(){
-    if (!entrySelectedDate) return;
+    if (!entrySelectedDate || entryMode === 'juventud') return;
     localStorage.setItem(LS_ACTIVE_ENTRY_DATE, JSON.stringify(entrySelectedDate));
     renderResults();
   }
@@ -1348,7 +1372,12 @@
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
 
-  function openEntryOverlay(){
+  function openEntryOverlay(mode){
+    entryMode = mode === 'juventud' ? 'juventud' : 'general';
+    document.getElementById('entryOverlayTitle').textContent = entryMode === 'juventud'
+      ? '🎤 Sermón de Juventud'
+      : 'Cargar asistencia';
+    document.getElementById('entryCustomDateInput').value = todayForDateInput_();
     renderEntryDateOptions();
     document.getElementById('entrySearchInput').value = '';
     document.getElementById('entrySuggestions').style.display = 'none';
@@ -1363,7 +1392,7 @@
   function closeEntryOverlay(){
     document.getElementById('entryOverlay').classList.remove('show');
   }
-  document.getElementById('attendanceEntryBtn').addEventListener('click', openEntryOverlay);
+  document.getElementById('attendanceEntryBtn').addEventListener('click', function(){ openEntryOverlay('general'); });
   document.getElementById('closeEntryBtn').addEventListener('click', closeEntryOverlay);
 
   document.getElementById('finalizeEntryBtn').addEventListener('click', function(){
@@ -1395,7 +1424,7 @@
       method: 'POST',
       headers: {'Content-Type': 'text/plain;charset=utf-8'},
       body: JSON.stringify({
-        action: 'sendCargaSummary',
+        action: entryMode === 'juventud' ? 'sendCargaSummaryJuventud' : 'sendCargaSummary',
         fecha: entrySelectedDate.fecha,
         label: entrySelectedDate.label || '',
         comentario: entrySelectedDate.comentario || ''
@@ -1423,7 +1452,8 @@
     var q = normalize(this.value);
     var box = document.getElementById('entrySuggestions');
     if (q.length < 2){ box.style.display = 'none'; box.innerHTML = ''; return; }
-    var matches = state.data.filter(function(p){
+    var pool = entryMode === 'juventud' ? state.data.filter(isJuventud) : state.data;
+    var matches = pool.filter(function(p){
       return normalize(p.nombreApellido).indexOf(q) !== -1;
     }).slice(0, 8);
     if (!matches.length){
@@ -1460,6 +1490,10 @@
         .sort(function(a, b){ return a.nombreApellido.localeCompare(b.nombreApellido); });
     } else {
       entryGroup = [person];
+    }
+    if (entryMode === 'juventud'){
+      entryGroup = entryGroup.filter(isJuventud);
+      if (!entryGroup.length) entryGroup = [person];
     }
     entrySelectedCodes = {};
     renderEntryGroup();
@@ -1525,7 +1559,10 @@
     fetch(scriptUrl, {
       method: 'POST',
       headers: {'Content-Type': 'text/plain;charset=utf-8'},
-      body: JSON.stringify({ action: 'saveAsistencia', fecha: fecha, comentario: comentario, entries: entries })
+      body: JSON.stringify({
+        action: entryMode === 'juventud' ? 'saveAsistenciaJuventud' : 'saveAsistencia',
+        fecha: fecha, comentario: comentario, entries: entries
+      })
     }).then(function(r){ return r.json(); }).then(function(res){
       btn.disabled = false;
       btn.textContent = 'Guardar asistencia del grupo';
@@ -1647,7 +1684,8 @@
 
     if (!state.query){
       countLine.textContent = state.data.length + ' almas en el directorio · escribí para buscar';
-      container.innerHTML = '<button type="button" class="btn btn-primary" id="openEntryBtn" style="margin-bottom:14px;">📋 Cargar Asistencia</button>' +
+      container.innerHTML = '<button type="button" class="btn btn-primary" id="openEntryBtn" style="margin-bottom:10px;">📋 Cargar Asistencia</button>' +
+        '<button type="button" class="btn btn-outline" id="openEntryJuventudBtn" style="margin-bottom:14px;">🎤 Sermón de Juventud</button>' +
         renderActiveDateTotal() + renderBirthdaysCard() + renderCongregationSummary() + renderYearSummary();
       return;
     }
