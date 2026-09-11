@@ -1171,21 +1171,24 @@
 
     var tareaNames = Object.keys(tareaCounts).sort();
     var tareaHtml = '';
-    if (tareaNames.length || juventudPresentes.length){
+    if (tareaNames.length){
       tareaHtml = '<p class="month-detail-heading" style="margin-top:16px;"><b>Presentes por tarea</b></p>';
       tareaNames.forEach(function(t){
         var names = tareaCounts[t].slice().sort();
         tareaHtml += '<p class="month-detail-heading"><span>🛠️</span>' + escapeHtml(t) + ' <b>(' + names.length + ')</b></p>' +
           '<p class="date-accordion-names">' + names.map(escapeHtml).join(' · ') + '</p>';
       });
-      if (juventudPresentes.length){
-        var jNames = juventudPresentes.slice().sort();
-        tareaHtml += '<p class="month-detail-heading"><span>🧑‍🤝‍🧑</span>Juventud <b>(' + jNames.length + ')</b></p>' +
-          '<p class="date-accordion-names">' + jNames.map(escapeHtml).join(' · ') + '</p>';
-      }
     }
 
-    return (sections || '<p class="vae-history-empty">Todavía no se cargó nadie para esta fecha.</p>') + tareaHtml;
+    var juventudHtml = '';
+    if (juventudPresentes.length){
+      var jNames = juventudPresentes.slice().sort();
+      juventudHtml = '<p class="month-detail-heading" style="margin-top:16px;"><b>Juventud</b></p>' +
+        '<p class="month-detail-heading"><span>🧑‍🤝‍🧑</span>Presentes <b>(' + jNames.length + ')</b></p>' +
+        '<p class="date-accordion-names">' + jNames.map(escapeHtml).join(' · ') + '</p>';
+    }
+
+    return (sections || '<p class="vae-history-empty">Todavía no se cargó nadie para esta fecha.</p>') + tareaHtml + juventudHtml;
   }
 
   function openDateDetail(fecha){
