@@ -613,6 +613,10 @@
     return v === 'si' || v === 'sí' || v === 'true' || v === 'x' || v === '1';
   }
 
+  function personTareas(p){
+    return (p && p.tareas ? p.tareas : '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  }
+
   function escapeHtml(str){
     return (str || '').toString()
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -686,11 +690,13 @@
     'celular': 'celular',
     'direccion': 'direccion',
     'vae': 'vae',
-    'juventud': 'juventud'
+    'juventud': 'juventud',
+    'tareas': 'tareas',
+    'tarea': 'tareas'
   };
 
   function mapRow(obj){
-    var rec = { nombreApellido:'', apellido:'', nombre:'', fechaNacimiento:'', edad:'', localidad:'', email:'', telefonoFijo:'', celular:'', direccion:'', vae:'', juventud:'' };
+    var rec = { nombreApellido:'', apellido:'', nombre:'', fechaNacimiento:'', edad:'', localidad:'', email:'', telefonoFijo:'', celular:'', direccion:'', vae:'', juventud:'', tareas:'' };
     Object.keys(obj).forEach(function(key){
       var target = HEADER_MAP[key];
       if (target) rec[target] = (obj[key] || '').toString().trim();
@@ -1139,12 +1145,21 @@
 
   function renderDateDetailBody(fecha){
     var byCode = {};
+    var tareaCounts = {};
+    var juventudPresentes = [];
     state.data.forEach(function(p){
       parseAsistenciaHistorial(p.asistenciaHistorial).forEach(function(en){
         if (en.fecha !== fecha) return;
         var c = (en.codigo || '').toUpperCase();
         byCode[c] = byCode[c] || [];
         byCode[c].push(p.nombreApellido);
+        if (c === 'P'){
+          personTareas(p).forEach(function(t){
+            tareaCounts[t] = tareaCounts[t] || [];
+            tareaCounts[t].push(p.nombreApellido);
+          });
+          if (isJuventud(p)) juventudPresentes.push(p.nombreApellido);
+        }
       });
     });
     var sections = CODE_ORDER.filter(function(c){ return byCode[c] && byCode[c].length; }).map(function(c){
@@ -1153,7 +1168,24 @@
           escapeHtml(ASISTENCIA_CODES[c] || c) + ' <b>(' + names.length + ')</b></p>' +
         '<p class="date-accordion-names">' + names.map(escapeHtml).join(' · ') + '</p>';
     }).join('');
-    return sections || '<p class="vae-history-empty">Todavía no se cargó nadie para esta fecha.</p>';
+
+    var tareaNames = Object.keys(tareaCounts).sort();
+    var tareaHtml = '';
+    if (tareaNames.length || juventudPresentes.length){
+      tareaHtml = '<p class="month-detail-heading" style="margin-top:16px;"><b>Presentes por tarea</b></p>';
+      tareaNames.forEach(function(t){
+        var names = tareaCounts[t].slice().sort();
+        tareaHtml += '<p class="month-detail-heading"><span>🛠️</span>' + escapeHtml(t) + ' <b>(' + names.length + ')</b></p>' +
+          '<p class="date-accordion-names">' + names.map(escapeHtml).join(' · ') + '</p>';
+      });
+      if (juventudPresentes.length){
+        var jNames = juventudPresentes.slice().sort();
+        tareaHtml += '<p class="month-detail-heading"><span>🧑‍🤝‍🧑</span>Juventud <b>(' + jNames.length + ')</b></p>' +
+          '<p class="date-accordion-names">' + jNames.map(escapeHtml).join(' · ') + '</p>';
+      }
+    }
+
+    return (sections || '<p class="vae-history-empty">Todavía no se cargó nadie para esta fecha.</p>') + tareaHtml;
   }
 
   function openDateDetail(fecha){
